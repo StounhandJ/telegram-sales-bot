@@ -1,4 +1,3 @@
-from textwrap import wrap
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback
 from utils.db_api import models
@@ -36,13 +35,8 @@ def getProductsKeyboard():
         return
     products = InlineKeyboardMarkup(row_width=3)
     for item in items["data"]:
-        price = ""
-        temporaryArrayNumbers = wrap(str(item["price"])[::-1], 3)
-        temporaryArrayNumbers.reverse()
-        for numbers in temporaryArrayNumbers:
-            price += numbers[::-1] + " "
         products.insert(
             InlineKeyboardButton(text=item["name"],
                                  callback_data=buy_callback.new(id=item["id"], item_name=item["name"],
-                                                                price=price + "р.")))
+                                                                price=item["price"])))
     return products

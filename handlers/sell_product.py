@@ -1,3 +1,4 @@
+from textwrap import wrap
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback
@@ -15,8 +16,13 @@ async def product_info(call: types.CallbackQuery, callback_data: dict, state: FS
         data["productID"] = callback_data["id"]
     product = models.get_product(callback_data["id"])
     if product["success"]:
+        price = ""
+        temporaryArrayNumbers = wrap(str(product["price"])[::-1], 3)
+        temporaryArrayNumbers.reverse()
+        for numbers in temporaryArrayNumbers:
+            price += numbers[::-1] + " "
         await call.message.edit_text(
-            text=config.message["product_info"].format(item_name=product["name"], price=product["price"], description=product["description"]),
+            text=config.message["product_info"].format(item_name=product["name"], price=price+"р.", description=product["description"]),
             reply_markup=choice_buttons.getSellProductsKeyboard())
     else:
         await call.message.edit_text(config.errorMessage["product_missing"])
@@ -45,9 +51,13 @@ async def comment_confirmation(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=SellInfo.description)
 async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext):
     await call.answer(cache_time=2)
+    mes = config.message["product_missing"]
     data = await state.get_data()
-    models.create_order(call.from_user.id, data.get("productID"), data.get("description"))
-    await call.message.edit_text(config.message["comment_confirmation_yes"])
+    product = models.get_product(data.get("productID"))
+    if product["success"]:
+        models.create_order(call.from_user.id, data.get("description"), product["name"], product["price"])
+        mes = config.message["comment_confirmation_yes"]
+    await call.message.edit_text(mes)
     # тут заявка отправляеться админам
     await state.finish()
 

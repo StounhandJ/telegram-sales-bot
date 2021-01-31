@@ -20,6 +20,7 @@ message = {
     "comment_confirmation": "Ваш текст:\n{text}",
     "comment_confirmation_yes": "Заявка отправлена(позже тут сначала оплата будет)",
     "comment_confirmation_no": "Напишите ваш новый коментарий к заказу:",
+    "product_missing": "Извените, но данный товар больше нельзя заказать",
 }
 
 adminMessage = {
@@ -31,7 +32,7 @@ adminMessage = {
     "order_completed": "Данный заказ уже выполнен",
     "order_close": "Закак с ID <b>{id}</b> был закрыт",
     "order_info": "{num}. Номер заказа <b>{orderID}</b> от {date}\n",
-    "order_detailed_info": "Номер заказа <b>{orderID}</b>\nПредмет: {product}\nОплата: {price}\nКоментарий к заказу: {description}\n Дата заказа: {date}\n",
+    "order_detailed_info": "Номер заказа <b>{orderID}</b>\nПредмет: {product}\nОплата: {price}\nКоментарий к заказу: {description}\nДата заказа: {date}\n",
     "message_send": "Напишите сообщение для пользователя",
     "message_send_confirmation": "Проверить сообщение /mesCheck\nОтправить сообщение?",
     "message_yes_send": "Сообщение успешно отправленно пользователю",
