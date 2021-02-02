@@ -3,7 +3,7 @@ from aiogram.dispatcher import FSMContext
 from data import config
 from states.product_add import ProductAdd
 from states.product_edit import ProductEdit
-from states.admin_mes import AdminMes
+from states.admin_mes_order import AdminMesOrder
 from keyboards.inline import choice_buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from keyboards.default import menu
@@ -120,8 +120,8 @@ async def message_productEdit_price_start(message: types.Message, state: FSMCont
 
 @dp.message_handler(state=ProductEdit, user_id=config.ADMINS, commands=["back"])
 async def message_productEdit_back(message: types.Message, state: FSMContext):
-    await AdminMes.last()
-    await AdminMes.next()
+    await AdminMesOrder.last()
+    await AdminMesOrder.next()
     await state.finish()
     await message.answer(config.adminMessage["product_edit_back"])
 
@@ -156,8 +156,8 @@ async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext)
     keys = data.keys()
     product = models.get_product(data.get("productEditID"))
     if not product["success"]:
-        await AdminMes.last()
-        await AdminMes.next()
+        await AdminMesOrder.last()
+        await AdminMesOrder.next()
         await state.finish()
         await call.message.edit_text(config.adminMessage["product_missing"])
         return

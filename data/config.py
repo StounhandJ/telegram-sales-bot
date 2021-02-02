@@ -18,14 +18,18 @@ message = {
     "product_info": "Предмет: {item_name}\nОписание: {description}\nЦена: {price}",
     "comment_order": "Оставьте коментарий к заказу: ",
     "comment_confirmation": "Ваш текст:\n{text}",
-    "comment_confirmation_yes": "Заявка отправлена(позже тут сначала оплата будет)",
+    "comment_confirmation_yes": "Заявка отправлена",
     "comment_confirmation_no": "Напишите ваш новый коментарий к заказу:",
     "product_missing": "Извените, но данный товар больше нельзя заказать",
+    "message_sent": "Сообщение отправллено администрации",
+    "message_no": "Напишите свое сообщение ещё раз: ",
+    "message_cancel": "Отправка сообщения администрации отменена."
 }
 
 adminMessage = {
     "help": "/orders - Выведет все заказы\n/info orderID - Информация о заказе\n/orderClose orderID - Закрыт заказ\n/send orderID - Начать ввод сообщений для отправки заказчику\n"
-            "/productList - Список всех товаров\n/addProduct - Начать создание новго товара\n/productEdit productID - Изменить товар",
+            "/productList - Список всех товаров\n/addProduct - Начать создание новго товара\n/productEdit productID - Изменить товар\n/ordermes or /allmes - Просмотреть все входящие сообщения"
+            "/mesinfo mesID - Информаци о входящем сообщение\n/usend mesID - Отправить сообщение в ответ",
     "orders_main": "Список заказов:\n",
     "orders_missing": "Заказов нет",
     "order_missing": "Данного заказа нет",
@@ -51,8 +55,22 @@ adminMessage = {
     "product_add_confirmation": "Подтвердить?",
     "product_add_repeat": "Повторите: ",
     "product_edit_back": "Меню изменений товара закрыто",
+    "messages_missing": "Сообщений нет",
+    "message_missing": "Данного сообщения нет",
+    "messages_info": "{num}. Номер сообщения <b>{id}</b> от {date}\n",
+    "message_detailed_info": "Номер сообщения <b>{id}</b>\nТекст: {text}\nДата отправки: {date}\n",
+    "message_completed": "На данное сообщение уже ответили",
+    "message_cancel": "Отправка сообщения пользователю отменена",
+    "messages_main_order": "Список сообщений от покупателей:\n",
+    "messages_main_all": "Список сообщений от обычныйх пользователей:\n",
+}
+
+payMessage = {
+    "title": "Заказ услуги",
 }
 
 errorMessage = {
-    "product_missing": "Данный предмет отсутвует"
+    "product_missing": "Данный предмет отсутвует",
+    "exceeded_time_pay": "Вы пытаетесь оплатить старый товар. Для вашей же безопасности повторите заказ.",
+    "payment_missing": "Произашла ошибка, ваш заказ скорее всего потерян. Свяжитесь с администрацией бота /ames"
 }

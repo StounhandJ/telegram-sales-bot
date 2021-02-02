@@ -2,14 +2,6 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback
 from utils.db_api import models
 
-items = [
-    {"id": 1, "name": "Алгоритмы", "price": 10000},
-    {"id": 2, "name": "Мат.Анализ", "price": 75000},
-    {"id": 3, "name": "Проектировани", "price": 5000},
-    {"id": 4, "name": "Администрирование", "price": 3800},
-    {"id": 5, "name": "РМП", "price": 12500},
-]
-
 
 def getSellProductsKeyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -20,13 +12,15 @@ def getSellProductsKeyboard():
     ])
 
 
-def getConfirmationKeyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
+def getConfirmationKeyboard(**kwargs):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="Да", callback_data=confirmation_callback.new(bool="Yes")),
             InlineKeyboardButton(text="Нет", callback_data=confirmation_callback.new(bool="No"))
-        ]
-    ])
+        ]])
+    for arg, text in kwargs.items():
+        keyboard.add(InlineKeyboardButton(text=text, callback_data=confirmation_callback.new(bool=arg)))
+    return keyboard
 
 
 def getProductsKeyboard():

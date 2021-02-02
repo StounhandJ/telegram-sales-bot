@@ -2,7 +2,7 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from data import config
 from datetime import datetime
-from states.admin_mes import AdminMes
+from states.admin_mes_order import AdminMesOrder
 from keyboards.inline import choice_buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from keyboards.default import menu
@@ -73,13 +73,13 @@ async def message_send_start(message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data["message_sendID"] = order["userID"]
             data["orderID"] = order["id"]
-        await AdminMes.message.set()
+        await AdminMesOrder.message.set()
         mes = config.adminMessage["message_send"]
 
     await message.answer(mes, reply_markup=menu)
 
 
-@dp.message_handler(state=AdminMes.message, user_id=config.ADMINS, commands=["mesCheck"])
+@dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, commands=["mesCheck"])
 async def message_handler(message: types.Message, state: FSMContext):
     DocMes = ""
     ImgMes = ""
@@ -100,7 +100,7 @@ async def message_handler(message: types.Message, state: FSMContext):
     await message.answer(ResponseMes, reply_markup=menu)
 
 
-@dp.message_handler(state=AdminMes.message, user_id=config.ADMINS, content_types=types.ContentType.DOCUMENT)
+@dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, content_types=types.ContentType.DOCUMENT)
 async def message_add_doc(message: types.Message, state: FSMContext):
     data = await state.get_data()
     keys = data.keys()
@@ -114,7 +114,7 @@ async def message_add_doc(message: types.Message, state: FSMContext):
                          reply_markup=choice_buttons.getConfirmationKeyboard())
 
 
-@dp.message_handler(state=AdminMes.message, user_id=config.ADMINS, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, content_types=types.ContentType.PHOTO)
 async def message_add_img(message: types.Message, state: FSMContext):
     data = await state.get_data()
     keys = data.keys()
@@ -128,7 +128,7 @@ async def message_add_img(message: types.Message, state: FSMContext):
                          reply_markup=choice_buttons.getConfirmationKeyboard())
 
 
-@dp.message_handler(state=AdminMes.message, user_id=config.ADMINS)
+@dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS)
 async def message_add_mes(message: types.Message, state: FSMContext):
     data = await state.get_data()
     mes = data.get("description") if "description" in data.keys() else ""
@@ -138,14 +138,14 @@ async def message_add_mes(message: types.Message, state: FSMContext):
                          reply_markup=choice_buttons.getConfirmationKeyboard())
 
 
-@dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminMes.message)
+@dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminMesOrder.message)
 async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext):
     await call.answer(cache_time=2)
     data = await state.get_data()
     order = models.get_order(data.get("orderID"))
     if not order["success"] or (order["success"] and not order["active"]):
         await call.message.edit_text(config.adminMessage["order_completed"])
-        await AdminMes.next()
+        await AdminMesOrder.next()
         await state.finish()
         return
     keys = data.keys()
@@ -159,18 +159,18 @@ async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext)
         await bot.send_document(chat_id=chatID, document=item.file_id, reply_markup=menu)
     for item in img:
         await bot.send_photo(chat_id=chatID, photo=item[len(item) - 1].file_id, reply_markup=menu)
-    await AdminMes.next()
+    await AdminMesOrder.next()
     await state.finish()
     await call.message.edit_text(config.adminMessage["message_yes_send"])
 
 
-@dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminMes.message)
+@dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminMesOrder.message)
 async def comment_confirmation_no(call: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data["document"] = ""
         data["description"] = ""
     await call.message.edit_text(config.adminMessage["message_not_send"])
-    await AdminMes.next()
+    await AdminMesOrder.next()
     await state.finish()
 
 

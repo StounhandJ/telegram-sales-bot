@@ -1,5 +1,5 @@
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
 
-class AdminMes(StatesGroup):
+class AdminMesOrder(StatesGroup):
     message = State()
