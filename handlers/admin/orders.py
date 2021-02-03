@@ -49,7 +49,7 @@ async def show_info_order(message: types.Message):
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["orderClose"])
-async def message_order_close(message: types.Message):
+async def close_order(message: types.Message):
     mes = config.adminMessage["order_missing"]
     order = models.get_order(checkID(message.text))
     if order["success"] and not order["active"]:
@@ -64,7 +64,7 @@ async def message_order_close(message: types.Message):
 ### Отправка соощения по заказу ###
 
 @dp.message_handler(user_id=config.ADMINS, commands=["send"])
-async def message_send_start(message: types.Message, state: FSMContext):
+async def start_message_send(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = models.get_order(checkID(message.text))
     if order["success"] and not order["active"]:
@@ -75,12 +75,11 @@ async def message_send_start(message: types.Message, state: FSMContext):
             data["orderID"] = order["id"]
         await AdminMesOrder.message.set()
         mes = config.adminMessage["message_send"]
-
     await message.answer(mes, reply_markup=menu)
 
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, commands=["mesCheck"])
-async def message_handler(message: types.Message, state: FSMContext):
+async def message_check(message: types.Message, state: FSMContext):
     DocMes = ""
     ImgMes = ""
     data = await state.get_data()
@@ -139,7 +138,7 @@ async def message_add_mes(message: types.Message, state: FSMContext):
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminMesOrder.message)
-async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext):
+async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     await call.answer(cache_time=2)
     data = await state.get_data()
     order = models.get_order(data.get("orderID"))
@@ -165,7 +164,7 @@ async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminMesOrder.message)
-async def comment_confirmation_no(call: types.CallbackQuery, state: FSMContext):
+async def message_send_no(call: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data["document"] = ""
         data["description"] = ""

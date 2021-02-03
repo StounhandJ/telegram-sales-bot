@@ -3,11 +3,11 @@ from keyboards.inline.callback_datas import buy_callback, setting_callback, conf
 from utils.db_api import models
 
 
-def getSellProductsKeyboard():
+def getSellProductsKeyboard(productID):
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="Назад", callback_data=setting_callback.new(command="exit")),
-            InlineKeyboardButton(text="Купить", callback_data=setting_callback.new(command="add"))
+            InlineKeyboardButton(text="Назад", callback_data=setting_callback.new(command="exit", productID=-1)),
+            InlineKeyboardButton(text="Купить", callback_data=setting_callback.new(command="add", productID=productID))
         ]
     ])
 

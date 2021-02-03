@@ -2,6 +2,6 @@ from aiogram.utils.callback_data import CallbackData
 
 buy_callback = CallbackData("buy", "id","item_name", "price")
 
-setting_callback = CallbackData("setting", "command")
+setting_callback = CallbackData("setting", "command", "productID")
 
 confirmation_callback = CallbackData("confirmation", "bool")

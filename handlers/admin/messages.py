@@ -51,7 +51,7 @@ async def all_messages(message: types.Message):
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["mesinfo", "infomes"])
-async def show_info_order(message: types.Message):
+async def show_info_mes(message: types.Message):
     mes = "Данное сообщние не найдено"
     messageInfo = models.get_message(checkID(message.text))
     if messageInfo["success"]:
@@ -65,7 +65,7 @@ async def show_info_order(message: types.Message):
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["usend", "usersend", "sendu", "usenduser"])
-async def message_send_start(message: types.Message, state: FSMContext):
+async def start_message_send(message: types.Message, state: FSMContext):
     mes = config.adminMessage["message_missing"]
     messageInfo = models.get_message(checkID(message.text))
     if messageInfo["success"] and not messageInfo["active"]:
@@ -79,7 +79,7 @@ async def message_send_start(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=AdminMesUser.message, user_id=config.ADMINS)
-async def message_add_mes(message: types.Message, state: FSMContext):
+async def adding_message(message: types.Message, state: FSMContext):
     data = await state.get_data()
     mes = data.get("message") if "message" in data.keys() else ""
     async with state.proxy() as data:
@@ -89,8 +89,13 @@ async def message_add_mes(message: types.Message, state: FSMContext):
     await AdminMesUser.wait.set()
 
 
+@dp.message_handler(state=AdminMesUser.wait)
+async def waiting(message: types.Message):
+    pass
+
+
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminMesUser.wait)
-async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext):
+async def adding_message_yes(call: types.CallbackQuery, state: FSMContext):
     await call.answer(cache_time=2)
     mes = config.adminMessage["message_completed"]
     data = await state.get_data()
@@ -105,13 +110,13 @@ async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminMesUser.wait)
-async def comment_confirmation_no(call: types.CallbackQuery):
+async def adding_message_no(call: types.CallbackQuery):
     await call.message.edit_text(config.message["message_no"])
     await AdminMesUser.message.set()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=AdminMesUser.wait)
-async def comment_confirmation_no(call: types.CallbackQuery, state: FSMContext):
+async def adding_message_cancel(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text(config.adminMessage["message_cancel"])
     await state.finish()
 

@@ -4,6 +4,8 @@ env = Env()
 env.read_env()
 
 BOT_TOKEN = env.str("BOT_TOKEN")
+PAYMENT_TOKEN = env.str("PAYMENT_TOKEN")
+currency = env.str("currency")
 ADMINS = env.list("ADMINS")
 IP = env.str("ip")
 dbUSER = env.str("dbUSER")
@@ -28,7 +30,7 @@ message = {
 
 adminMessage = {
     "help": "/orders - Выведет все заказы\n/info orderID - Информация о заказе\n/orderClose orderID - Закрыт заказ\n/send orderID - Начать ввод сообщений для отправки заказчику\n"
-            "/productList - Список всех товаров\n/addProduct - Начать создание новго товара\n/productEdit productID - Изменить товар\n/ordermes or /allmes - Просмотреть все входящие сообщения"
+            "/productList - Список всех товаров\n/addProduct - Начать создание новго товара\n/productEdit productID - Изменить товар\n/ordermes or /allmes - Просмотреть все входящие сообщения\n"
             "/mesinfo mesID - Информаци о входящем сообщение\n/usend mesID - Отправить сообщение в ответ",
     "orders_main": "Список заказов:\n",
     "orders_missing": "Заказов нет",
@@ -52,8 +54,9 @@ adminMessage = {
     "product_add_name": "Укажите название:",
     "product_add_description": "Укажите описание:",
     "product_add_price": "Укажите цену(числом):",
-    "product_add_confirmation": "Подтвердить?",
+    "product_add_confirmation": "Отправить?",
     "product_add_repeat": "Повторите: ",
+    "product_add_cancel": "Создание товара отменено",
     "product_edit_back": "Меню изменений товара закрыто",
     "messages_missing": "Сообщений нет",
     "message_missing": "Данного сообщения нет",
@@ -67,6 +70,7 @@ adminMessage = {
 
 payMessage = {
     "title": "Заказ услуги",
+    "description": "Тут нужно будет прописать описание"
 }
 
 errorMessage = {

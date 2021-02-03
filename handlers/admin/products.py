@@ -14,7 +14,7 @@ from utils.db_api import models
 ### Информация о продукте ###
 
 @dp.message_handler(user_id=config.ADMINS, commands=["productList"])
-async def message_productList(message: types.Message):
+async def show_productList(message: types.Message):
     mes = config.adminMessage["products_missing"]
     products = models.get_ALLProducts()
     if products["success"]:
@@ -31,13 +31,13 @@ async def message_productList(message: types.Message):
 ### Создзание продукта ###
 
 @dp.message_handler(user_id=config.ADMINS, commands=["addProduct"])
-async def message_addProduct_start(message: types.Message):
+async def start_create_product(message: types.Message):
     await ProductAdd.name.set()
     await message.answer(config.adminMessage["product_add_name"], reply_markup=menu)
 
 
 @dp.message_handler(state=ProductAdd.name, user_id=config.ADMINS)
-async def message_addProduct_name(message: types.Message, state: FSMContext):
+async def create_product_name(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["name"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
@@ -45,7 +45,7 @@ async def message_addProduct_name(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=ProductAdd.description, user_id=config.ADMINS)
-async def message_addProduct_description(message: types.Message, state: FSMContext):
+async def create_product_description(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["description"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
@@ -53,15 +53,15 @@ async def message_addProduct_description(message: types.Message, state: FSMConte
 
 
 @dp.message_handler(state=ProductAdd.price, user_id=config.ADMINS)
-async def message_addProduct_price(message: types.Message, state: FSMContext):
+async def create_product_price(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["price"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=choice_buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=ProductAdd)
-async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext):
+async def create_product_yes(call: types.CallbackQuery, state: FSMContext):
     await ProductAdd.next()
     data = await state.get_data()
     keys = data.keys()
@@ -80,14 +80,20 @@ async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=ProductAdd)
-async def comment_confirmation_no(call: types.CallbackQuery):
+async def create_product_no(call: types.CallbackQuery):
     await call.message.edit_text(config.adminMessage["product_add_repeat"])
+
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=ProductAdd)
+async def create_product_cancel(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_text(config.message["product_add_cancel"])
+    await state.finish()
 
 
 ### Изменение продукта ###
 
 @dp.message_handler(user_id=config.ADMINS, commands=["productEdit"])
-async def message_productEdit(message: types.Message, state: FSMContext):
+async def start_edit_product(message: types.Message, state: FSMContext):
     mes = config.adminMessage["product_missing"]
     product = models.get_product(checkID(message.text))
     if product["success"]:
@@ -100,26 +106,26 @@ async def message_productEdit(message: types.Message, state: FSMContext):
     await message.answer(mes, reply_markup=menu)
 
 
-@dp.message_handler(state=ProductEdit, user_id=config.ADMINS, commands=["name"])
-async def message_productEdit_name_start(message: types.Message, state: FSMContext):
+@dp.message_handler(state=ProductEdit.zero, user_id=config.ADMINS, commands=["name"])
+async def edit_product_name_start(message: types.Message, state: FSMContext):
     await message.answer(config.adminMessage["product_add_name"])
     await ProductEdit.name.set()
 
 
-@dp.message_handler(state=ProductEdit, user_id=config.ADMINS, commands=["description"])
-async def message_productEdit_description_start(message: types.Message, state: FSMContext):
+@dp.message_handler(state=ProductEdit.zero, user_id=config.ADMINS, commands=["description"])
+async def edit_product_description_start(message: types.Message, state: FSMContext):
     await message.answer(config.adminMessage["product_add_description"])
     await ProductEdit.description.set()
 
 
-@dp.message_handler(state=ProductEdit, user_id=config.ADMINS, commands=["price"])
-async def message_productEdit_price_start(message: types.Message, state: FSMContext):
+@dp.message_handler(state=ProductEdit.zero, user_id=config.ADMINS, commands=["price"])
+async def edit_product_price_start(message: types.Message, state: FSMContext):
     await message.answer(config.adminMessage["product_add_price"])
     await ProductEdit.price.set()
 
 
-@dp.message_handler(state=ProductEdit, user_id=config.ADMINS, commands=["back"])
-async def message_productEdit_back(message: types.Message, state: FSMContext):
+@dp.message_handler(state=ProductEdit.zero, user_id=config.ADMINS, commands=["back"])
+async def edit_product_back(message: types.Message, state: FSMContext):
     await AdminMesOrder.last()
     await AdminMesOrder.next()
     await state.finish()
@@ -127,7 +133,7 @@ async def message_productEdit_back(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=ProductEdit.name, user_id=config.ADMINS)
-async def message_productEdit_name(message: types.Message, state: FSMContext):
+async def edit_product_name(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["name"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
@@ -135,7 +141,7 @@ async def message_productEdit_name(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=ProductEdit.description, user_id=config.ADMINS)
-async def message_productEdit_description(message: types.Message, state: FSMContext):
+async def edit_product_description(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["description"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
@@ -143,7 +149,7 @@ async def message_productEdit_description(message: types.Message, state: FSMCont
 
 
 @dp.message_handler(state=ProductEdit.price, user_id=config.ADMINS)
-async def message_productEdit_price(message: types.Message, state: FSMContext):
+async def edit_product_price(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["price"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
@@ -151,7 +157,7 @@ async def message_productEdit_price(message: types.Message, state: FSMContext):
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=ProductEdit)
-async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext):
+async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     keys = data.keys()
     product = models.get_product(data.get("productEditID"))
@@ -177,7 +183,7 @@ async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=ProductEdit)
-async def comment_confirmation_no(call: types.CallbackQuery):
+async def edit_product_no(call: types.CallbackQuery):
     await call.message.edit_text(config.adminMessage["product_add_repeat"])
 
 

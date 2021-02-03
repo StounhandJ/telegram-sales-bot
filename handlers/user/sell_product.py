@@ -33,10 +33,8 @@ async def process_successful_payment(message: types.Message):
 
 
 @dp.callback_query_handler(buy_callback.filter())
-async def product_info(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+async def product_info(call: types.CallbackQuery, callback_data: dict):
     await call.answer(cache_time=2)
-    async with state.proxy() as data:
-        data["productID"] = callback_data["id"]
     product = models.get_product(callback_data["id"])
     if product["success"]:
         price = ""
@@ -47,25 +45,31 @@ async def product_info(call: types.CallbackQuery, callback_data: dict, state: FS
         await call.message.edit_text(
             text=config.message["product_info"].format(item_name=product["name"], price=price + "р.",
                                                        description=product["description"]),
-            reply_markup=choice_buttons.getSellProductsKeyboard())
+            reply_markup=choice_buttons.getSellProductsKeyboard(callback_data["id"]))
     else:
         await call.message.edit_text(config.errorMessage["product_missing"])
 
 
 @dp.callback_query_handler(setting_callback.filter(command="exit"))
-async def show_product(call: types.CallbackQuery, state: FSMContext):
+async def product_info_exit(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text(config.message["Product_Menu"], reply_markup=choice_buttons.getProductsKeyboard())
     await state.finish()
 
 
 @dp.callback_query_handler(setting_callback.filter(command="add"))
-async def comment_order(call: types.CallbackQuery, state: FSMContext):
-    await call.message.edit_text(config.message["comment_order"])
-    await SellInfo.description.set()
+async def start_buy_product(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    mes = config.errorMessage["product_missing"]
+    product = models.get_product(callback_data["productID"])
+    if product["success"]:
+        async with state.proxy() as data:
+            data["productID"] = callback_data["productID"]
+        await SellInfo.description.set()
+        mes = config.message["comment_order"]
+    await call.message.edit_text(mes)
 
 
 @dp.message_handler(state=SellInfo.description)
-async def comment_confirmation(message: types.Message, state: FSMContext):
+async def adding_comment(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["description"] = message.text
     await message.answer(config.message["comment_confirmation"].format(text=message.text),
@@ -74,25 +78,25 @@ async def comment_confirmation(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=SellInfo.wait)
-async def comment_confirmation(message: types.Message):
+async def waiting(message: types.Message):
     pass
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=SellInfo.wait)
-async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext):
+async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
     await call.answer(cache_time=2)
     data = await state.get_data()
     product = models.get_product(data.get("productID"))
     description = data.get("description") if "description" in data.keys() else ""
     if product["success"]:
         PRICE = types.LabeledPrice(label=product["name"], amount=product["price"] * 100)
-        secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct=product["name"],time=time.time()).encode())
+        secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct=product["name"], time=time.time()).encode())
         await bot.send_invoice(
             call.from_user.id,
             title=config.payMessage["title"],
-            description=product["description"],
-            provider_token="401643678:TEST:f61b1a00-7bf2-4169-8b25-397bee1085d4",
-            currency='rub',
+            description=config.payMessage["description"],
+            provider_token=config.PAYMENT_TOKEN,
+            currency=config.currency,
             is_flexible=False,
             prices=[PRICE],
             start_parameter='time-machine-example',
@@ -106,12 +110,12 @@ async def comment_confirmation_yes(call: types.CallbackQuery, state: FSMContext)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=SellInfo.wait)
-async def comment_confirmation_no(call: types.CallbackQuery, state: FSMContext):
+async def adding_comment_no(call: types.CallbackQuery):
     await call.message.edit_text(config.message["comment_confirmation_no"])
     await SellInfo.description.set()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=SellInfo.wait)
-async def comment_confirmation_no(call: types.CallbackQuery, state: FSMContext):
+async def adding_comment_cancel(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text(config.message["Product_Menu"], reply_markup=choice_buttons.getProductsKeyboard())
     await state.finish()

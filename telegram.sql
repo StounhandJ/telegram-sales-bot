@@ -52,7 +52,8 @@ ALTER TABLE `orders`
   ADD PRIMARY KEY (`id`);
 
 ALTER TABLE `payment`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `userID` (`userID`);
 
 ALTER TABLE `payment_history`
   ADD PRIMARY KEY (`id`);
