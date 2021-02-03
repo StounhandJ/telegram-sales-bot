@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback
-from utils.db_api import models
+from utils.db_api.models import productModel
 
 
 def getSellProductsKeyboard(productID):
@@ -24,7 +24,7 @@ def getConfirmationKeyboard(**kwargs):
 
 
 def getProductsKeyboard():
-    items = models.get_ALLProducts()
+    items = productModel.get_ALLProducts()
     if not items["success"]:
         return
     products = InlineKeyboardMarkup(row_width=3)

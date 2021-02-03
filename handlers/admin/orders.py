@@ -3,11 +3,11 @@ from aiogram.dispatcher import FSMContext
 from data import config
 from datetime import datetime
 from states.admin_mes_order import AdminMesOrder
-from keyboards.inline import choice_buttons
+from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
-from keyboards.default import menu
+from keyboards.default.menu import menu
 from loader import dp, bot
-from utils.db_api import models
+from utils.db_api.models import orderModel
 
 
 ### Информация о заказах ###
@@ -16,7 +16,7 @@ from utils.db_api import models
 async def show_orders(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
-    orders = models.get_ALLOrders()
+    orders = orderModel.get_ALLOrders()
     if orders["success"]:
         mes = config.adminMessage["orders_main"]
         num = 1
@@ -35,7 +35,7 @@ async def show_orders(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["info"])
 async def show_info_order(message: types.Message):
     mes = "Данный заказ не найден"
-    order = models.get_order(checkID(message.text))
+    order = orderModel.get_order(checkID(message.text))
     if order["success"]:
         productName = order["nameProduct"]
         productPrice = order["price"]
@@ -51,11 +51,11 @@ async def show_info_order(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["orderClose"])
 async def close_order(message: types.Message):
     mes = config.adminMessage["order_missing"]
-    order = models.get_order(checkID(message.text))
+    order = orderModel.get_order(checkID(message.text))
     if order["success"] and not order["active"]:
         mes = config.adminMessage["order_completed"]
     elif order["success"]:
-        models.updateActive_order(order["id"])
+        orderModel.updateActive_order(order["id"])
         mes = config.adminMessage["order_close"].format(id=order["id"])
 
     await message.answer(mes, reply_markup=menu)
@@ -66,7 +66,7 @@ async def close_order(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["send"])
 async def start_message_send(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
-    order = models.get_order(checkID(message.text))
+    order = orderModel.get_order(checkID(message.text))
     if order["success"] and not order["active"]:
         mes = config.adminMessage["order_completed"]
     elif order["success"]:
@@ -110,7 +110,7 @@ async def message_add_doc(message: types.Message, state: FSMContext):
         data["document"] = doc
         data["description"] = mes + (message.caption + "\n" if message.caption is not None else "")
     await message.answer(config.adminMessage["document_add"] + "\n" + config.adminMessage["message_send_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, content_types=types.ContentType.PHOTO)
@@ -124,7 +124,7 @@ async def message_add_img(message: types.Message, state: FSMContext):
         data["img"] = img
         data["description"] = mes + (message.caption + "\n" if message.caption is not None else "")
     await message.answer(config.adminMessage["img_add"] + "\n" + config.adminMessage["message_send_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS)
@@ -134,14 +134,14 @@ async def message_add_mes(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["description"] = mes + message.text + "\n"
     await message.answer(config.adminMessage["mes_add"] + "\n" + config.adminMessage["message_send_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminMesOrder.message)
 async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     await call.answer(cache_time=2)
     data = await state.get_data()
-    order = models.get_order(data.get("orderID"))
+    order = orderModel.get_order(data.get("orderID"))
     if not order["success"] or (order["success"] and not order["active"]):
         await call.message.edit_text(config.adminMessage["order_completed"])
         await AdminMesOrder.next()

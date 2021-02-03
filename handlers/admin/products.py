@@ -1,14 +1,14 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from data import config
-from states.product_add import ProductAdd
-from states.product_edit import ProductEdit
+from states.create_product import ProductAdd
+from states.edit_product import ProductEdit
 from states.admin_mes_order import AdminMesOrder
-from keyboards.inline import choice_buttons
+from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
-from keyboards.default import menu
+from keyboards.default.menu import menu
 from loader import dp
-from utils.db_api import models
+from utils.db_api.models import productModel
 
 
 ### Информация о продукте ###
@@ -16,7 +16,7 @@ from utils.db_api import models
 @dp.message_handler(user_id=config.ADMINS, commands=["productList"])
 async def show_productList(message: types.Message):
     mes = config.adminMessage["products_missing"]
-    products = models.get_ALLProducts()
+    products = productModel.get_ALLProducts()
     if products["success"]:
         mes = config.adminMessage["products_main"]
         num = 1
@@ -41,7 +41,7 @@ async def create_product_name(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["name"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=ProductAdd.description, user_id=config.ADMINS)
@@ -49,7 +49,7 @@ async def create_product_description(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["description"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=ProductAdd.price, user_id=config.ADMINS)
@@ -57,7 +57,7 @@ async def create_product_price(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["price"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=ProductAdd)
@@ -66,7 +66,7 @@ async def create_product_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     keys = data.keys()
     if "price" in keys:
-        models.create_product(data.get("name"), data.get("description"), data.get("price"))
+        productModel.create_product(data.get("name"), data.get("description"), data.get("price"))
         mes = "Сохранено"
         await ProductAdd.next()
         await state.finish()
@@ -95,7 +95,7 @@ async def create_product_cancel(call: types.CallbackQuery, state: FSMContext):
 @dp.message_handler(user_id=config.ADMINS, commands=["productEdit"])
 async def start_edit_product(message: types.Message, state: FSMContext):
     mes = config.adminMessage["product_missing"]
-    product = models.get_product(checkID(message.text))
+    product = productModel.get_product(checkID(message.text))
     if product["success"]:
         async with state.proxy() as data:
             data["productEditID"] = product["id"]
@@ -137,7 +137,7 @@ async def edit_product_name(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["name"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=ProductEdit.description, user_id=config.ADMINS)
@@ -145,7 +145,7 @@ async def edit_product_description(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["description"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=ProductEdit.price, user_id=config.ADMINS)
@@ -153,14 +153,14 @@ async def edit_product_price(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["price"] = message.text
     await message.answer(message.text + "\n" + config.adminMessage["product_add_confirmation"],
-                         reply_markup=choice_buttons.getConfirmationKeyboard())
+                         reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=ProductEdit)
 async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     keys = data.keys()
-    product = models.get_product(data.get("productEditID"))
+    product = productModel.get_product(data.get("productEditID"))
     if not product["success"]:
         await AdminMesOrder.last()
         await AdminMesOrder.next()
@@ -174,7 +174,7 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
         product["description"] = data.get("description")
     elif "name" in keys:
         product["name"] = data.get("name")
-    models.update_product(product["id"], product["name"], product["description"], product["price"], )
+    productModel.update_product(product["id"], product["name"], product["description"], product["price"], )
     await call.message.edit_text(
         "<b>Обновленно</b>\n" + config.adminMessage["product_edit"].format(name=product["name"],
                                                                            price=product["price"],

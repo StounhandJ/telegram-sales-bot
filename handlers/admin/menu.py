@@ -1,6 +1,6 @@
 from aiogram import types
 from data import config
-from keyboards.default import menu
+from keyboards.default.menu import menu
 from loader import dp
 
 

@@ -2,8 +2,8 @@ from aiogram import types
 from aiogram.dispatcher.filters.builtin import Text, CommandStart
 from aiogram.dispatcher.filters.builtin import CommandHelp
 from data import config
-from keyboards.default import menu
-from keyboards.inline import choice_buttons
+from keyboards.default.menu import menu
+from keyboards.inline import buttons
 from loader import dp
 
 
@@ -24,12 +24,12 @@ async def show_menu(message: types.Message):
 
 @dp.message_handler(commands=["items"])
 async def show_menu(message: types.Message):
-    await message.answer(config.message["Product_Menu"], reply_markup=choice_buttons.getProductsKeyboard())
+    await message.answer(config.message["Product_Menu"], reply_markup=buttons.getProductsKeyboard())
 
 
 @dp.message_handler(Text(equals=["Список предметов"]))
 async def show_product(message: types.Message):
-    await message.answer(config.message["Product_Menu"], reply_markup=choice_buttons.getProductsKeyboard())
+    await message.answer(config.message["Product_Menu"], reply_markup=buttons.getProductsKeyboard())
 
 
 @dp.message_handler(commands=["about"])

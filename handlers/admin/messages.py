@@ -3,18 +3,18 @@ from aiogram.dispatcher import FSMContext
 from data import config
 from datetime import datetime
 from states.admin_mes_user import AdminMesUser
-from keyboards.inline import choice_buttons
+from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
-from keyboards.default import menu
+from keyboards.default.menu import menu
 from loader import dp, bot
-from utils.db_api import models
+from utils.db_api.models import messagesModel
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["ordermes", "mesorder"])
 async def order_messages(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
-    messages = models.get_order_messages()
+    messages = messagesModel.get_order_messages()
     if messages["success"]:
         mes = config.adminMessage["messages_main_order"]
         num = 1
@@ -34,7 +34,7 @@ async def order_messages(message: types.Message):
 async def all_messages(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
-    messages = models.get_all_messages()
+    messages = messagesModel.get_all_messages()
     if messages["success"]:
         mes = config.adminMessage["messages_main_all"]
         num = 1
@@ -53,7 +53,7 @@ async def all_messages(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["mesinfo", "infomes"])
 async def show_info_mes(message: types.Message):
     mes = "Данное сообщние не найдено"
-    messageInfo = models.get_message(checkID(message.text))
+    messageInfo = messagesModel.get_message(checkID(message.text))
     if messageInfo["success"]:
         mes = config.adminMessage["message_detailed_info"].format(id=messageInfo["id"], text=messageInfo["message"],
                                                                   date=datetime.utcfromtimestamp(
@@ -67,7 +67,7 @@ async def show_info_mes(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["usend", "usersend", "sendu", "usenduser"])
 async def start_message_send(message: types.Message, state: FSMContext):
     mes = config.adminMessage["message_missing"]
-    messageInfo = models.get_message(checkID(message.text))
+    messageInfo = messagesModel.get_message(checkID(message.text))
     if messageInfo["success"] and not messageInfo["active"]:
         mes = config.adminMessage["order_completed"]
     elif messageInfo["success"]:
@@ -85,7 +85,7 @@ async def adding_message(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["message"] = mes + message.text + "\n"
     await message.answer(message.text + "\nПодтверждаете?",
-                         reply_markup=choice_buttons.getConfirmationKeyboard(cancel="Отменить"))
+                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
     await AdminMesUser.wait.set()
 
 
@@ -99,11 +99,11 @@ async def adding_message_yes(call: types.CallbackQuery, state: FSMContext):
     await call.answer(cache_time=2)
     mes = config.adminMessage["message_completed"]
     data = await state.get_data()
-    messageInfo = models.get_message(data.get("message_sendID"))
+    messageInfo = messagesModel.get_message(data.get("message_sendID"))
     text = data.get("message") if "message" in data.keys() else ""
     if messageInfo["success"] and messageInfo["active"]:
         await bot.send_message(chat_id=messageInfo["userID"], text=text, reply_markup=menu)
-        models.updateActive_message(data.get("message_sendID"))
+        messagesModel.updateActive_message(data.get("message_sendID"))
         mes = config.adminMessage["message_yes_send"]
     await call.message.edit_text(mes)
     await state.finish()
