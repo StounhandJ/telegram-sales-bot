@@ -1,13 +1,16 @@
+import hashlib
+import time
 from textwrap import wrap
+
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback
-from keyboards.inline import buttons
-from loader import dp, bot
+
 from data import config
-from utils.db_api.models import productModel, paymentModel, orderModel
+from keyboards.inline import buttons
+from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback
+from loader import dp, bot
 from states.sell_info import SellInfo
-import time, hashlib
+from utils.db_api.models import productModel, paymentModel, orderModel
 
 
 @dp.pre_checkout_query_handler()
@@ -103,7 +106,8 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
             payload=secret_key.hexdigest()
         )
         paymentModel.del_payment(call.from_user.id)
-        paymentModel.create_payment(call.from_user.id, product["name"], description, product["price"], secret_key.hexdigest())
+        paymentModel.create_payment(call.from_user.id, product["name"], description, product["price"],
+                                    secret_key.hexdigest())
     else:
         await call.message.edit_text(config.message["product_missing"])
     await state.finish()

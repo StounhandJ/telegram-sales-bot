@@ -1,12 +1,14 @@
+from datetime import datetime
+
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+
 from data import config
-from datetime import datetime
-from states.admin_mes_order import AdminMesOrder
+from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
-from keyboards.default.menu import menu
 from loader import dp, bot
+from states.admin_mes_order import AdminMesOrder
 from utils.db_api.models import orderModel
 
 
@@ -34,13 +36,11 @@ async def show_orders(message: types.Message):
 
 @dp.message_handler(user_id=config.ADMINS, commands=["info"])
 async def show_info_order(message: types.Message):
-    mes = "Данный заказ не найден"
+    mes = config.adminMessage["order_missing"]
     order = orderModel.get_order(checkID(message.text))
     if order["success"]:
-        productName = order["nameProduct"]
-        productPrice = order["price"]
-        mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"], product=productName,
-                                                                price=productPrice,
+        mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"], product=order["nameProduct"],
+                                                                price=order["price"],
                                                                 description=order["description"],
                                                                 date=datetime.utcfromtimestamp(
                                                                     order["date"]).strftime('%Y-%m-%d %H:%M:%S'))

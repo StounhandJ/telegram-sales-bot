@@ -1,10 +1,11 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.builtin import Text
-from keyboards.inline.callback_datas import confirmation_callback
-from keyboards.inline import buttons
-from loader import dp
+
 from data import config
+from keyboards.inline import buttons
+from keyboards.inline.callback_datas import confirmation_callback
+from loader import dp
 from states.user_mes import UserMes
 from utils.db_api.models import orderModel, messagesModel
 
@@ -42,7 +43,7 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
     orders = orderModel.get_ALLOrders()
     isOrder = orders["success"] and call.from_user.id in [order["userID"] for order in orders["data"]]
     messagesModel.create_messages(call.from_user.id,
-                           data.get("message") if "message" in data.keys() else "", isOrder)
+                                  data.get("message") if "message" in data.keys() else "", isOrder)
     for admin in config.ADMINS:
         await dp.bot.send_message(admin, "Новое сообщение от " + (
             "<b>пользователя с заказом</b>" if isOrder else "<b>обычного пользователя</b>"))
