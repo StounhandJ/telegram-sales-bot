@@ -1,13 +1,12 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback
-from utils.db_api.models import productModel
+from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback, type_work_callback
 
 
-def getSellProductsKeyboard(productID):
+def getSellWorkKeyboard(type_work):
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="Назад", callback_data=setting_callback.new(command="exit", productID=-1)),
-            InlineKeyboardButton(text="Купить", callback_data=setting_callback.new(command="add", productID=productID))
+            InlineKeyboardButton(text="Назад", callback_data=setting_callback.new(command="exit", type="zero")),
+            InlineKeyboardButton(text="Далее", callback_data=setting_callback.new(command="continue", type=type_work))
         ]
     ])
 
@@ -23,14 +22,18 @@ def getConfirmationKeyboard(**kwargs):
     return keyboard
 
 
-def getProductsKeyboard():
-    items = productModel.get_ALLProducts()
-    if not items["success"]:
-        return
-    products = InlineKeyboardMarkup(row_width=3)
-    for item in items["data"]:
-        products.insert(
-            InlineKeyboardButton(text=item["name"],
-                                 callback_data=buy_callback.new(id=item["id"], item_name=item["name"],
-                                                                price=item["price"])))
-    return products
+def getCustomKeyboard(**kwargs):
+    keyboard = InlineKeyboardMarkup()
+    for arg, text in kwargs.items():
+        keyboard.add(InlineKeyboardButton(text=text, callback_data=confirmation_callback.new(bool=arg)))
+    return keyboard
+
+
+def getTypeWorkKeyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Курсовая работа", callback_data=type_work_callback.new(work="Coursework")),
+            InlineKeyboardButton(text="Дипломная работа", callback_data=type_work_callback.new(work="Diploma"))
+        ]
+    ])
+
