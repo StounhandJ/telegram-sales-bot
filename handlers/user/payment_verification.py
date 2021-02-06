@@ -1,14 +1,11 @@
 import time
 
 from aiogram import types
-from aiogram.dispatcher import FSMContext
 
 from data import config
-from keyboards.inline import buttons
-from keyboards.inline.callback_datas import setting_callback, confirmation_callback, type_work_callback
 from loader import dp, bot
-from states.sell_info import SellInfo
-from utils.db_api.models import paymentModel, orderModel, ordersProcessingModel, promoCodesModel
+from utils.db_api.models import paymentModel, orderModel
+from utils.notify_admins import notify_admins_message
 
 
 @dp.pre_checkout_query_handler()
@@ -28,6 +25,7 @@ async def process_successful_payment(message: types.Message):
     if payment["success"]:
         orderModel.create_order(message.from_user.id, payment["description"], payment["nameProduct"],
                                 message.successful_payment.total_amount // 100)
+        await notify_admins_message(config.adminMessage["admin_mes_order_paid"])
         mes = config.message["comment_confirmation_yes"]
     paymentModel.del_payment(message.from_user.id)
     await message.answer(mes)

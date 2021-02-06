@@ -8,6 +8,7 @@ from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp
 from states.user_mes import UserMes
 from utils.db_api.models import orderModel, messagesModel
+from utils.notify_admins import notify_admins_message
 
 
 @dp.message_handler(Text(equals=["Написать администрации"]))
@@ -44,8 +45,7 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
     isOrder = orders["success"] and call.from_user.id in [order["userID"] for order in orders["data"]]
     messagesModel.create_messages(call.from_user.id,
                                   data.get("message") if "message" in data.keys() else "", isOrder)
-    for admin in config.ADMINS:
-        await dp.bot.send_message(admin, "Новое сообщение от " + (
+    await notify_admins_message("Новое сообщение от " + (
             "<b>пользователя с заказом</b>" if isOrder else "<b>обычного пользователя</b>"))
     await call.message.edit_text(config.message["message_sent"])
     await state.finish()

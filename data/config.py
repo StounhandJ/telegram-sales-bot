@@ -20,13 +20,15 @@ message = {
     "product_info": "Предмет: {item_name}\nОписание: {description}\nЦена: {price}",
     "code_missing": "Данного промокода нет",
     "comment_order": "Оставьте коментарий к заказу: ",
-    "comment_promoCode": "Введите промокод:",
+    "comment_documentCheck": "Есть дополнительный файл?",
+    "comment_document": "Прикрепите файл:",
     "comment_promoCodeCheck": "У вас есть промокод?",
-    "code_info": "Название: {name}\nСкидка: {discount}",
-    "promoCode_confirmation": "Ваш промокод:\n{text}",
+    "comment_promoCode": "Введите промокод:",
+    "promoCode_confirmation": "Ваш промокод:\nНазвание: {name}\nСкидка: {discount}",
+    "document_confirmation": "Ваш документ:\n{text}",
     "comment_confirmation": "Ваш текст:\n{text}",
     "comment_confirmation_yes": "Заявка отправлена",
-    "comment_confirmation_no": "Напишите ваш новый коментарий к заказу:",
+    "comment_confirmation_no": "Повторите:",
     "product_missing": "Извените, но данный товар больше нельзя заказать",
     "message_sent": "Сообщение отправллено администрации",
     "message_no": "Напишите свое сообщение ещё раз: ",
@@ -36,17 +38,22 @@ message = {
 }
 
 adminMessage = {
-    "help": "/orderspr - Все заявки в расмотрение\n/infopr orderProID - Подробная информация о заказе на рассмотрении\n/sendr orderProID - отправить форму оплаты\n/closer - Отказать в заказе(не работает)"
+    "help": "/orderspr - Все заявки в расмотрение\n/infopr orderProID - Подробная информация о заказе на рассмотрении\n/sendr orderProID - отправить форму оплаты\n/closer orderProID - Отказать в заказе"
             "/orders - Выведет все заказы\n/info orderID - Информация о заказе\n/orderClose orderID - Закрыт заказ\n/send orderID - Начать ввод сообщений для отправки заказчику\n"
-            "/codeList - Список всех товаров\n/codeAdd - Начать создание новго промокода\n/codeEdit codeID - Изменить промокод\n/ordermes or /allmes - Просмотреть все входящие сообщения\n"
+            "/codeList - Список всех промокодов\n/codeAdd - Начать создание новго промокода\n/codeEdit codeID - Изменить промокод\n/ordermes or /allmes - Просмотреть все входящие сообщения\n"
             "/mesinfo mesID - Информаци о входящем сообщение\n/usend mesID - Отправить сообщение в ответ",
-    "orders_main": "Список заказов:\n",
+    "ordersPR_main": "Список заказов:\n{text}\n/infopr orderProID - Подробная информация о заказе на рассмотрении\n/sendr orderProID - отправить форму оплаты\n/closer orderProID - Отказать в заказе",
+    "orders_main": "Список заказов:\n{text}\n/info orderID - Информация о заказе\n/orderClose orderID - Закрыт заказ\n/send orderID - Начать ввод сообщений для отправки заказчику",
     "orders_missing": "Заказов нет",
     "order_missing": "Данного заказа нет",
     "order_completed": "Данный заказ уже выполнен",
+    "order_confirm": "Закрыть заказ?\n(Отправить ответ на заказ надо перед закрытием)",
+    "order_confirm_no": "Закрытие заказа отменено",
     "order_close": "Закак с ID <b>{id}</b> был закрыт",
     "order_info": "{num}. Номер заказа <b>{orderID}</b> от {date}\n",
     "order_detailed_info": "Номер заказа <b>{orderID}</b>\nПредмет: {product}\nОплата: {price}\nКоментарий к заказу: {description}\nДата заказа: {date}\n",
+    "order_close_text": "Напишите текст для отказа:",
+    "order_close_confirm": "Отправить отказ?",
     "message_send": "Напишите сообщение для пользователя",
     "message_send_confirmation": "Проверить сообщение /mesCheck\nОтправить сообщение?",
     "message_yes_send": "Сообщение успешно отправленно пользователю",
@@ -55,7 +62,7 @@ adminMessage = {
     "document_add": "Документ добавлен",
     "img_add": "Изображение добавлено",
     "mes_add": "Сообщение добавлено",
-    "code_main": "Список промокодов:\n",
+    "code_main": "Список промокодов:\n{text}\n/codeAdd - Начать создание новго промокода\n/codeEdit codeID - Изменить промокод",
     "codes_missing": "Промокодов нет",
     "code_missing": "Данного промокода нет",
     "code_info": "{num}. ID прмокода <b>{id}</b>\nНазвание: {name}\nСкидка: {discount}\n\n",
@@ -79,7 +86,9 @@ adminMessage = {
     "messages_main_order": "Список сообщений от покупателей:\n",
     "messages_main_all": "Список сообщений от обычныйх пользователей:\n",
     "order_pr_detailed_info": "Номер заказа <b>{orderID}</b>\nТекст заявки:\n{text}\nСкидка: {discount}\nДата заказа: {date}\n",
-    "price_confirmation": "Отправить форму оплаты?"
+    "price_confirmation": "Отправить форму оплаты?",
+    "admin_mes_order_provisional":"<b>Новый</b> заказ, нужно его рассмотреть и дать хорошую цену ; )\n/orderspr",
+    "admin_mes_order_paid": "<b>Оплачен</b> новый заказа, надо бы его сделать\n/orders"
 }
 
 payMessage = {

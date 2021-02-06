@@ -8,7 +8,7 @@ from utils.notify_admins import on_startup_notify
 async def on_startup(dispatcher):
     # Уведомляет про запуск
     # middlewares.setup(dp)
-    await on_startup_notify(dispatcher)
+    await on_startup_notify()
 
 
 if __name__ == '__main__':

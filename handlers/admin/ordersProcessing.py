@@ -10,6 +10,7 @@ from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp, bot
+from states.admin_close_order_pr import AdminCloseOrderPr
 from states.admin_price_order import AdminPriceOrder
 from utils.db_api.models import ordersProcessingModel, paymentModel
 
@@ -20,15 +21,16 @@ async def show_orders(message: types.Message):
               "Ноябрь", "Декабрь"]
     orders = ordersProcessingModel.get_ALLOrders_provisional()
     if orders["success"]:
-        mes = config.adminMessage["orders_main"]
+        text = ""
         num = 1
         for item in orders["data"]:
             date = datetime.utcfromtimestamp(item["date"])
             dateMes = "{year} год {day} {month} {min}".format(year=date.year, day=date.day,
                                                               month=months[date.month - 1],
                                                               min=date.strftime("%H:%M"))
-            mes += config.adminMessage["order_info"].format(num=num, orderID=item["id"], date=dateMes)
+            text += config.adminMessage["order_info"].format(num=num, orderID=item["id"], date=dateMes)
             num += 1
+        mes = config.adminMessage["ordersPR_main"].format(text=text)
     else:
         mes = config.adminMessage["orders_missing"]
     await message.answer(mes, reply_markup=menu)
@@ -45,11 +47,17 @@ async def show_info_order(message: types.Message):
                                                                    date=datetime.utcfromtimestamp(
                                                                        order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
         mes += "<b>Заказ выполнен</b>" if not order["active"] else ""
+        if len(order["document"]) == 1:
+            await message.answer_document(caption=mes, document=order["document"][0])
+            return
+        elif len(order["document"]) > 1:
+            for document in order["document"]:
+                await message.answer_document(document=document)
     await message.answer(mes, reply_markup=menu)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["sendr"])
-async def show_info_order(message: types.Message, state: FSMContext):
+async def send_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = ordersProcessingModel.get_order_provisional(checkID(message.text))
     if order["success"] and not order["active"]:
@@ -63,8 +71,48 @@ async def show_info_order(message: types.Message, state: FSMContext):
     await message.answer(mes, reply_markup=menu)
 
 
+@dp.message_handler(user_id=config.ADMINS, commands=["closer"])
+async def close_order(message: types.Message, state: FSMContext):
+    mes = config.adminMessage["order_missing"]
+    order = ordersProcessingModel.get_order_provisional(checkID(message.text))
+    if order["success"]:
+        mes = config.adminMessage["order_close_text"]
+        async with state.proxy() as data:
+            data["orderID"] = order["id"]
+        await AdminCloseOrderPr.message.set()
+    await message.answer(mes, reply_markup=menu)
+
+
+@dp.message_handler(state=AdminCloseOrderPr.message, user_id=config.ADMINS)
+async def close_order_text(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data["text"] = message.text
+    await AdminCloseOrderPr.wait.set()
+    await message.answer(config.adminMessage["order_close_confirm"], reply_markup=buttons.getConfirmationKeyboard())
+
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminCloseOrderPr.wait)
+async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
+    await call.answer(cache_time=2)
+    mes = config.adminMessage["order_missing"]
+    data = await state.get_data()
+    order = ordersProcessingModel.get_order_provisional(data.get("orderID"))
+    if order["success"]:
+        mes = config.adminMessage["message_yes_send"]
+        await bot.send_message(chat_id=order["userID"], text=data.get("text"))
+        ordersProcessingModel.updateActive_order(data.get("orderID"))
+    await state.finish()
+    await call.message.edit_text(mes)
+
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminCloseOrderPr.wait)
+async def message_send_no(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_text(config.adminMessage["message_not_send"])
+    await state.finish()
+
+
 @dp.message_handler(state=AdminPriceOrder.price, user_id=config.ADMINS)
-async def edit_product_name(message: types.Message, state: FSMContext):
+async def send_order_price(message: types.Message, state: FSMContext):
     if message.text.isdigit():
         async with state.proxy() as data:
             data["price"] = message.text

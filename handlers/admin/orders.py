@@ -8,6 +8,7 @@ from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp, bot
+from states.admin_close_order import AdminCloseOrder
 from states.admin_mes_order import AdminMesOrder
 from utils.db_api.models import orderModel
 
@@ -20,15 +21,16 @@ async def show_orders(message: types.Message):
               "Ноябрь", "Декабрь"]
     orders = orderModel.get_ALLOrders()
     if orders["success"]:
-        mes = config.adminMessage["orders_main"]
+        text = ""
         num = 1
         for item in orders["data"]:
             date = datetime.utcfromtimestamp(item["date"])
             dateMes = "{year} год {day} {month} {min}".format(year=date.year, day=date.day,
                                                               month=months[date.month - 1],
                                                               min=date.strftime("%H:%M"))
-            mes += config.adminMessage["order_info"].format(num=num, orderID=item["id"], date=dateMes)
+            text += config.adminMessage["order_info"].format(num=num, orderID=item["id"], date=dateMes)
             num += 1
+        mes = config.adminMessage["orders_main"].format(text=text)
     else:
         mes = config.adminMessage["orders_missing"]
     await message.answer(mes, reply_markup=menu)
@@ -49,16 +51,35 @@ async def show_info_order(message: types.Message):
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["orderClose"])
-async def close_order(message: types.Message):
+async def close_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = orderModel.get_order(checkID(message.text))
+    if order["success"]:
+        mes = config.adminMessage["order_confirm"]
+        async with state.proxy() as data:
+            data["orderID"] = order["id"]
+        await AdminCloseOrder.wait.set()
+    await message.answer(mes, reply_markup=buttons.getConfirmationKeyboard())
+
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminCloseOrder.wait)
+async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
+    mes = config.adminMessage["order_missing"]
+    data = await state.get_data()
+    order = orderModel.get_order(data.get("orderID"))
     if order["success"] and not order["active"]:
         mes = config.adminMessage["order_completed"]
     elif order["success"]:
         orderModel.updateActive_order(order["id"])
         mes = config.adminMessage["order_close"].format(id=order["id"])
+    await state.finish()
+    await call.message.edit_text(mes)
 
-    await message.answer(mes, reply_markup=menu)
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminCloseOrder.wait)
+async def message_send_no(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_text(config.adminMessage["order_confirm_no"])
+    await state.finish()
 
 
 ### Отправка соощения по заказу ###

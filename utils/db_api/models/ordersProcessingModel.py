@@ -1,20 +1,22 @@
+import json
+
 from utils.db_api import db
 import time
 
 
-def create_order_provisional(userID, text, percent, discount):
+def create_order_provisional(userID, text, document, percent, discount):
     db.DataBase.request(
-        """INSERT INTO `orders_processing`(`userID`, `text`, `active`, `percent`, `discount`, `date`) VALUES ({userID},"{text}",1,{percent},{discount},{date})""".format(
-            userID=userID, text=text, percent=percent, discount=discount,date=int(time.time())))
+        """INSERT INTO `orders_processing`(`userID`, `text`, `document` ,`active`, `percent`, `discount`, `date`) VALUES ({userID},"{text}",'{document}',1,{percent},{discount},{date})""".format(
+            userID=userID, text=text, document=json.dumps(document), percent=percent, discount=discount, date=int(time.time())))
 
 
 def get_order_provisional(id):
     try:
         response = db.DataBase.request(
-            """SELECT `id`, `userID`, `text`, `active`, `percent`, `discount`, `date` FROM `orders_processing` WHERE `id`={id}""".format(
+            """SELECT `id`, `userID`, `text`, `document`, `active`, `percent`, `discount`, `date` FROM `orders_processing` WHERE `id`={id}""".format(
                 id=id))[0]
         return {"success": True, "id": int(response[0]), "userID": int(response[1]),
-                "text": response[2], "active": bool(response[3]), "percent": bool(response[4]), "discount": response[5], "date": int(response[6])}
+                "text": response[2], "document": json.loads(response[3]), "active": bool(response[4]), "percent": bool(response[5]), "discount": response[6], "date": int(response[7])}
     except:
         return {"success": False}
 
