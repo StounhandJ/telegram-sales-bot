@@ -7,39 +7,36 @@ CREATE TABLE `messages` (
   `date` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
 CREATE TABLE `orders` (
   `id` int(11) NOT NULL,
   `userID` int(11) NOT NULL,
-  `nameProduct` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `price` int(11) NOT NULL,
   `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `active` tinyint(1) NOT NULL,
   `date` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 CREATE TABLE `orders_processing` (
   `id` int(10) UNSIGNED NOT NULL,
   `userID` int(10) UNSIGNED NOT NULL,
   `text` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `active` tinyint(1) NOT NULL,
   `percent` tinyint(1) NOT NULL,
   `discount` int(10) UNSIGNED NOT NULL,
   `date` int(10) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
 CREATE TABLE `payment` (
   `id` int(11) NOT NULL,
   `userID` int(11) NOT NULL,
-  `nameProduct` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `price` int(11) NOT NULL,
   `secret_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `date` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 CREATE TABLE `payment_history` (
   `id` int(11) NOT NULL,
@@ -47,7 +44,6 @@ CREATE TABLE `payment_history` (
   `amount` int(11) NOT NULL,
   `date` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 CREATE TABLE `promo_codes` (
   `id` int(10) UNSIGNED NOT NULL,
@@ -68,14 +64,14 @@ ALTER TABLE `orders_processing`
   ADD PRIMARY KEY (`id`);
 
 ALTER TABLE `payment`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `userID` (`userID`);
+  ADD PRIMARY KEY (`id`);
 
 ALTER TABLE `payment_history`
   ADD PRIMARY KEY (`id`);
 
 ALTER TABLE `promo_codes`
   ADD PRIMARY KEY (`id`);
+
 
 ALTER TABLE `messages`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;

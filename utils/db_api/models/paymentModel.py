@@ -1,34 +1,37 @@
+import json
+
 from utils.db_api import db
 import time
 
 
-def create_payment(userID, nameProduct, description, price, secret_key):
+def create_payment(userID, description, document, price, secret_key):
     try:
         db.DataBase.request(
-            """INSERT INTO `payment`(`userID`, `nameProduct`, `description`, `price`, `secret_key`,`date`) VALUES ({userID},"{nameProduct}","{description}",{price},"{secret_key}",{date})""".format(
-                userID=userID, nameProduct=nameProduct, description=description, price=price, secret_key=secret_key,
+            """INSERT INTO `payment`(`userID`, `description`, `document`, `price`, `secret_key`,`date`) VALUES ({userID},"{description}",'{document}',{price},"{secret_key}",{date})""".format(
+                userID=userID, description=description, document=json.dumps(document), price=price, secret_key=secret_key,
                 date=int(time.time())))
         return {"success": True}
     except:
         return {"success": False}
 
 
-def get_payment(userID):
+def get_payment(secret_key):
     try:
         response = db.DataBase.request(
-            """SELECT `nameProduct`, `description`, `price`, `secret_key`, `date` FROM `payment` WHERE `userID`={id}""".format(
-                id=userID))[0]
-        return {"success": True, "nameProduct": response[0], "description": response[1], "price": int(response[2]),
-                "secret_key": response[3], "date": int(response[4])}
+            """SELECT `userID`, `description`, `document`, `price`, `secret_key`, `date` FROM `payment` WHERE `secret_key`="{secret_key}" """.format(
+                secret_key=secret_key))[0]
+        return {"success": True, "userID": response[0], "description": response[1], "document": json.loads(response[2]),
+                "price": int(response[3]),
+                "secret_key": response[4], "date": int(response[5])}
     except:
         return {"success": False}
 
 
-def del_payment(userID):
+def del_payment(secret_key):
     try:
         db.DataBase.request(
-            """DELETE FROM `payment` WHERE `userID`={id}""".format(
-                id=userID))
+            """DELETE FROM `payment` WHERE `secret_key`="{secret_key}" """.format(
+                secret_key=secret_key))
         return {"success": True}
     except:
         return {"success": False}

@@ -13,13 +13,15 @@ from utils.notify_admins import notify_admins_message
 @dp.callback_query_handler(type_work_callback.filter(work="Coursework"))
 async def coursework_info(call: types.CallbackQuery, callback_data: dict):
     await call.answer(cache_time=2)
-    await call.message.edit_text(text="Информация о курсовой\n Цена от 3000 р.", reply_markup=buttons.getSellWorkKeyboard(callback_data["work"]))
+    await call.message.edit_text(text="Информация о курсовой\n Цена от 3000 р.",
+                                 reply_markup=buttons.getSellWorkKeyboard(callback_data["work"]))
 
 
 @dp.callback_query_handler(type_work_callback.filter(work="Diploma"))
 async def diploma_info(call: types.CallbackQuery, callback_data: dict):
     await call.answer(cache_time=2)
-    await call.message.edit_text(text="Информация о дипломной работе\n Цена от 2000 р.", reply_markup=buttons.getSellWorkKeyboard(callback_data["work"]))
+    await call.message.edit_text(text="Информация о дипломной работе\n Цена от 2000 р.",
+                                 reply_markup=buttons.getSellWorkKeyboard(callback_data["work"]))
 
 
 @dp.callback_query_handler(setting_callback.filter(command="exit"))
@@ -54,7 +56,8 @@ async def message_add_doc(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["document"] = message.document
     await SellInfo.wait.set()
-    await message.answer(config.message["document_confirmation"].format(text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
+    await message.answer(config.message["document_confirmation"].format(
+        text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
                          reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
 
 
@@ -65,7 +68,9 @@ async def adding_promoCode(message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data["percent"] = code["percent"]
             data["discount"] = code["discount"]
-        await message.answer(config.message["promoCode_confirmation"].format(name=code["name"], discount=str(code["discount"]) + ("%" if code["percent"] else " р.")),
+        await message.answer(config.message["promoCode_confirmation"].format(name=code["name"],
+                                                                             discount=str(code["discount"]) + (
+                                                                                 "%" if code["percent"] else " р.")),
                              reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
         await SellInfo.wait.set()
     else:
@@ -82,7 +87,8 @@ async def adding_promoCodeCheck_yes(call: types.CallbackQuery, state: FSMContext
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=SellInfo.documentCheck)
 async def adding_promoCodeCheck_no(call: types.CallbackQuery, state: FSMContext):
     await SellInfo.promoCodeCheck.set()
-    await call.message.edit_text(text=config.message["comment_promoCodeCheck"], reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+    await call.message.edit_text(text=config.message["comment_promoCodeCheck"],
+                                 reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="noDocument"), state=SellInfo.document)
@@ -132,7 +138,8 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
     keyboard = None
     if "percent" in keys:
         document = [data.get("document").file_id] if "document" in data.keys() else []
-        ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document, data.get("percent"), data.get("discount"))
+        ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document,
+                                                       data.get("percent"), data.get("discount"))
         await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])
         mes = "Ваша заявка принята"
         await state.finish()
@@ -142,7 +149,8 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
         keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "description" in keys:
         async with state.proxy() as data:
-            data["description"] = ("Курсовая" if data["type_work"]=="Coursework" else "Дипломная")+"\n\n"+data["description"]
+            data["description"] = ("Курсовая" if data["type_work"] == "Coursework" else "Дипломная") + "\n\n" + data[
+                "description"]
         mes = config.message["comment_documentCheck"]
         keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
         await SellInfo.documentCheck.set()

@@ -41,12 +41,18 @@ async def show_info_order(message: types.Message):
     mes = config.adminMessage["order_missing"]
     order = orderModel.get_order(checkID(message.text))
     if order["success"]:
-        mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"], product=order["nameProduct"],
+        mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"],
                                                                 price=order["price"],
                                                                 description=order["description"],
                                                                 date=datetime.utcfromtimestamp(
                                                                     order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
         mes += "<b>Заказ выполнен</b>" if not order["active"] else ""
+        if len(order["document"]) == 1:
+            await message.answer_document(caption=mes, document=order["document"][0])
+            return
+        elif len(order["document"]) > 1:
+            for document in order["document"]:
+                await message.answer_document(document=document)
     await message.answer(mes, reply_markup=menu)
 
 

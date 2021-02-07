@@ -149,8 +149,7 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
             start_parameter='time-machine-example',
             payload=secret_key.hexdigest()
         )
-        paymentModel.del_payment(call.from_user.id)
-        paymentModel.create_payment(call.from_user.id, "Работа на заказ", order["text"], amount,
+        paymentModel.create_payment(call.from_user.id, order["text"], order["document"], amount,
                                     secret_key.hexdigest())
         ordersProcessingModel.updateActive_order(data.get("orderID"))
         mes = config.adminMessage["message_yes_send"]

@@ -1,21 +1,23 @@
+import json
+
 from utils.db_api import db
 import time
 
 
-def create_order(userID, description, nameProduct, price):
+def create_order(userID, description, document, price):
     db.DataBase.request(
-        """INSERT INTO `orders`( `userID`, `description`,`nameProduct`,`price` ,`date`,`active`) VALUES ({user},"{description}","{nameProduct}",{price},{date},1)""".format(
-            user=userID, description=description, nameProduct=nameProduct, price=price,
+        """INSERT INTO `orders`( `userID`, `description`,`document`,`price` ,`date`,`active`) VALUES ({user},"{description}",'{document}',{price},{date},1)""".format(
+            user=userID, description=description, document=json.dumps(document), price=price,
             date=int(time.time())))
 
 
 def get_order(id):
     try:
         response = db.DataBase.request(
-            """SELECT `id`,`userID`,`description`,`nameProduct`,`price`,`active`,`date` FROM `orders` WHERE `id`={id}""".format(
+            """SELECT `id`,`userID`,`description`,`document`,`price`,`active`,`date` FROM `orders` WHERE `id`={id}""".format(
                 id=id))[0]
         return {"success": True, "id": int(response[0]), "userID": int(response[1]),
-                "description": response[2], "nameProduct": response[3], "price": int(response[4]),
+                "description": response[2], "document": json.loads(response[3]), "price": int(response[4]),
                 "active": bool(response[5]), "date": int(response[6])}
     except:
         return {"success": False}
