@@ -26,7 +26,7 @@ async def process_successful_payment(message: types.Message):
     if payment["success"]:
         orderModel.create_order(message.from_user.id, payment["description"], payment["document"],
                                 message.successful_payment.total_amount // 100)
-        await notify_admins_message(config.adminMessage["admin_mes_order_paid"])
-        mes = config.message["comment_confirmation_yes"]
         paymentModel.del_payment(payment["secret_key"])
+        mes = config.message["comment_confirmation_yes"]
+        await notify_admins_message(config.adminMessage["admin_mes_order_paid"])
     await message.answer(mes)

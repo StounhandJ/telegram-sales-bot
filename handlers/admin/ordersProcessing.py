@@ -13,6 +13,7 @@ from loader import dp, bot
 from states.admin_close_order_pr import AdminCloseOrderPr
 from states.admin_price_order import AdminPriceOrder
 from utils.db_api.models import ordersProcessingModel, paymentModel
+from utils import function
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["orderspr"])
@@ -39,7 +40,7 @@ async def show_orders(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["infopr"])
 async def show_info_order(message: types.Message):
     mes = config.adminMessage["order_missing"]
-    order = ordersProcessingModel.get_order_provisional(checkID(message.text))
+    order = ordersProcessingModel.get_order_provisional(function.checkID(message.text))
     if order["success"]:
         mes = config.adminMessage["order_pr_detailed_info"].format(orderID=order["id"], text=order["text"],
                                                                    discount=str(order["discount"]) + (
@@ -59,13 +60,12 @@ async def show_info_order(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["sendr"])
 async def send_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
-    order = ordersProcessingModel.get_order_provisional(checkID(message.text))
+    order = ordersProcessingModel.get_order_provisional(function.checkID(message.text))
     if order["success"] and not order["active"]:
         mes = config.adminMessage["order_completed"]
     elif order["success"]:
-        async with state.proxy() as data:
-            data["message_sendID"] = order["userID"]
-            data["orderID"] = order["id"]
+        await state.update_data(message_sendID=order["userID"])
+        await state.update_data(orderID=order["id"])
         await AdminPriceOrder.price.set()
         mes = config.adminMessage["price_send"]
     await message.answer(mes, reply_markup=menu)
@@ -74,19 +74,17 @@ async def send_order(message: types.Message, state: FSMContext):
 @dp.message_handler(user_id=config.ADMINS, commands=["closer"])
 async def close_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
-    order = ordersProcessingModel.get_order_provisional(checkID(message.text))
+    order = ordersProcessingModel.get_order_provisional(function.checkID(message.text))
     if order["success"]:
         mes = config.adminMessage["order_close_text"]
-        async with state.proxy() as data:
-            data["orderID"] = order["id"]
+        await state.update_data(orderID=message.text)
         await AdminCloseOrderPr.message.set()
     await message.answer(mes, reply_markup=menu)
 
 
 @dp.message_handler(state=AdminCloseOrderPr.message, user_id=config.ADMINS)
 async def close_order_text(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data["text"] = message.text
+    await state.update_data(text=message.text)
     await AdminCloseOrderPr.wait.set()
     await message.answer(config.adminMessage["order_close_confirm"], reply_markup=buttons.getConfirmationKeyboard())
 
@@ -98,24 +96,23 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     order = ordersProcessingModel.get_order_provisional(data.get("orderID"))
     if order["success"]:
-        mes = config.adminMessage["message_yes_send"]
         await bot.send_message(chat_id=order["userID"], text=data.get("text"))
         ordersProcessingModel.updateActive_order(data.get("orderID"))
+        mes = config.adminMessage["message_yes_send"]
     await state.finish()
     await call.message.edit_text(mes)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminCloseOrderPr.wait)
 async def message_send_no(call: types.CallbackQuery, state: FSMContext):
-    await call.message.edit_text(config.adminMessage["message_not_send"])
     await state.finish()
+    await call.message.edit_text(config.adminMessage["message_not_send"])
 
 
 @dp.message_handler(state=AdminPriceOrder.price, user_id=config.ADMINS)
 async def send_order_price(message: types.Message, state: FSMContext):
     if message.text.isdigit():
-        async with state.proxy() as data:
-            data["price"] = message.text
+        await state.update_data(price=message.text)
         await AdminPriceOrder.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["price_confirmation"],
                              reply_markup=buttons.getConfirmationKeyboard())
@@ -161,10 +158,3 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
 async def message_send_no(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text(config.adminMessage["message_not_send"])
     await state.finish()
-
-
-def checkID(mes):
-    try:
-        return int(mes.split(' ')[1])
-    except:
-        return -1

@@ -2,6 +2,7 @@ CREATE TABLE `messages` (
   `id` int(11) NOT NULL,
   `userID` int(11) NOT NULL,
   `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `isOrder` tinyint(1) NOT NULL,
   `active` tinyint(1) NOT NULL,
   `date` int(11) NOT NULL

@@ -1,12 +1,14 @@
+import json
+
 from utils.db_api import db
 import time
 
 
-def create_messages(userID, message, isOrder):
+def create_messages(userID, message, document, isOrder):
     try:
         db.DataBase.request(
-            """INSERT INTO `messages`(`userID`, `message`, `isOrder`, `active`, `date`) VALUES ({userID},"{message}",{isOrder},1,{date})""".format(
-                userID=userID, message=message, isOrder=isOrder, date=int(time.time())))
+            """INSERT INTO `messages`(`userID`, `message`, `document`, `isOrder`, `active`, `date`) VALUES ({userID},"{message}",'{document}',{isOrder},1,{date})""".format(
+                userID=userID, message=message, document=json.dumps(document), isOrder=isOrder, date=int(time.time())))
         return {"success": True}
     except:
         return {"success": False}
@@ -37,11 +39,11 @@ def get_order_messages():
 def get_message(id):
     try:
         response = db.DataBase.request(
-            """SELECT `id`, `userID`, `message`, `isOrder`, `active`, `date` FROM `messages` WHERE `id`={id}""".format(
+            """SELECT `id`, `userID`, `message`, `document`, `isOrder`, `active`, `date` FROM `messages` WHERE `id`={id}""".format(
                 id=id))[0]
         return {"success": True, "id": int(response[0]), "userID": int(response[1]),
-                "message": response[2], "isOrder": bool(response[3]),
-                "active": bool(response[4]), "date": int(response[5])}
+                "message": response[2], "document": json.loads(response[3]), "isOrder": bool(response[4]),
+                "active": bool(response[5]), "date": int(response[6])}
     except:
         return {"success": False}
 

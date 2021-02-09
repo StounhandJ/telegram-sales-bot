@@ -6,3 +6,4 @@ class CodeAdd(StatesGroup):
     code = State()
     percent = State()
     discount = State()
+    wait = State()

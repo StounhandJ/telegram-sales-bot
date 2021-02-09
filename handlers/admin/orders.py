@@ -11,6 +11,7 @@ from loader import dp, bot
 from states.admin_close_order import AdminCloseOrder
 from states.admin_mes_order import AdminMesOrder
 from utils.db_api.models import orderModel
+from utils import function
 
 
 ### Информация о заказах ###
@@ -39,7 +40,7 @@ async def show_orders(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["info"])
 async def show_info_order(message: types.Message):
     mes = config.adminMessage["order_missing"]
-    order = orderModel.get_order(checkID(message.text))
+    order = orderModel.get_order(function.checkID(message.text))
     if order["success"]:
         mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"],
                                                                 price=order["price"],
@@ -59,11 +60,10 @@ async def show_info_order(message: types.Message):
 @dp.message_handler(user_id=config.ADMINS, commands=["orderClose"])
 async def close_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
-    order = orderModel.get_order(checkID(message.text))
+    order = orderModel.get_order(function.checkID(message.text))
     if order["success"]:
         mes = config.adminMessage["order_confirm"]
-        async with state.proxy() as data:
-            data["orderID"] = order["id"]
+        await state.update_data(orderID=order["id"])
         await AdminCloseOrder.wait.set()
     await message.answer(mes, reply_markup=buttons.getConfirmationKeyboard())
 
@@ -93,13 +93,12 @@ async def message_send_no(call: types.CallbackQuery, state: FSMContext):
 @dp.message_handler(user_id=config.ADMINS, commands=["send"])
 async def start_message_send(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
-    order = orderModel.get_order(checkID(message.text))
+    order = orderModel.get_order(function.checkID(message.text))
     if order["success"] and not order["active"]:
         mes = config.adminMessage["order_completed"]
     elif order["success"]:
-        async with state.proxy() as data:
-            data["message_sendID"] = order["userID"]
-            data["orderID"] = order["id"]
+        await state.update_data(message_sendID=order["userID"])
+        await state.update_data(orderID=order["id"])
         await AdminMesOrder.message.set()
         mes = config.adminMessage["message_send"]
     await message.answer(mes, reply_markup=menu)
@@ -158,8 +157,7 @@ async def message_add_img(message: types.Message, state: FSMContext):
 async def message_add_mes(message: types.Message, state: FSMContext):
     data = await state.get_data()
     mes = data.get("description") if "description" in data.keys() else ""
-    async with state.proxy() as data:
-        data["description"] = mes + message.text + "\n"
+    await state.update_data(description=(mes + message.text + "\n"))
     await message.answer(config.adminMessage["mes_add"] + "\n" + config.adminMessage["message_send_confirmation"],
                          reply_markup=buttons.getConfirmationKeyboard())
 
@@ -170,9 +168,8 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     order = orderModel.get_order(data.get("orderID"))
     if not order["success"] or (order["success"] and not order["active"]):
-        await call.message.edit_text(config.adminMessage["order_completed"])
-        await AdminMesOrder.next()
         await state.finish()
+        await call.message.edit_text(config.adminMessage["order_completed"])
         return
     keys = data.keys()
     chatID = data.get("message_sendID")
@@ -185,23 +182,11 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
         await bot.send_document(chat_id=chatID, document=item.file_id, reply_markup=menu)
     for item in img:
         await bot.send_photo(chat_id=chatID, photo=item[len(item) - 1].file_id, reply_markup=menu)
-    await AdminMesOrder.next()
     await state.finish()
     await call.message.edit_text(config.adminMessage["message_yes_send"])
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminMesOrder.message)
 async def message_send_no(call: types.CallbackQuery, state: FSMContext):
-    async with state.proxy() as data:
-        data["document"] = ""
-        data["description"] = ""
-    await call.message.edit_text(config.adminMessage["message_not_send"])
-    await AdminMesOrder.next()
     await state.finish()
-
-
-def checkID(mes):
-    try:
-        return int(mes.split(' ')[1])
-    except:
-        return -1
+    await call.message.edit_text(config.adminMessage["message_not_send"])
