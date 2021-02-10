@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback, type_work_callback
+from data import config
 
 
 def getSellWorkKeyboard(type_work):
@@ -30,10 +31,21 @@ def getCustomKeyboard(**kwargs):
 
 
 def getTypeWorkKeyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="Курсовая работа", callback_data=type_work_callback.new(work="Coursework")),
-            InlineKeyboardButton(text="Дипломная работа", callback_data=type_work_callback.new(work="Diploma"))
+            InlineKeyboardButton(text="Курсовая работа", callback_data=type_work_callback.new(work="Курсовая")),
+            InlineKeyboardButton(text="Дипломная работа", callback_data=type_work_callback.new(work="Дипломная"))
         ]
     ])
+    keyboard.add(InlineKeyboardButton(text="Другие работы", callback_data=type_work_callback.new(work="other_works")))
+    return keyboard
 
+
+def getOtherWorks():
+    keyboard = InlineKeyboardMarkup()
+    for work in config.works:
+        if work!="Курсовая" and work!="Дипломная":
+            keyboard.add(
+                InlineKeyboardButton(text=work, callback_data=type_work_callback.new(work=work)))
+    keyboard.add(InlineKeyboardButton(text="Назад", callback_data=type_work_callback.new(work="back")))
+    return keyboard

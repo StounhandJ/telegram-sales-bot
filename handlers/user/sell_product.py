@@ -11,17 +11,23 @@ from utils.notify_admins import notify_admins_message
 from utils import function
 
 
-@dp.callback_query_handler(type_work_callback.filter(work="Coursework"))
-async def coursework_info(call: types.CallbackQuery, callback_data: dict):
+@dp.callback_query_handler(type_work_callback.filter(work="other_works"))
+async def diploma_info(call: types.CallbackQuery):
     await call.answer(cache_time=2)
-    await call.message.edit_text(text="Информация о курсовой\n Цена от 3000 р.",
-                                 reply_markup=buttons.getSellWorkKeyboard(callback_data["work"]))
+    await call.message.edit_text(text="Другие работы",
+                                 reply_markup=buttons.getOtherWorks())
 
 
-@dp.callback_query_handler(type_work_callback.filter(work="Diploma"))
+@dp.callback_query_handler(type_work_callback.filter(work="back"))
+async def diploma_info(call: types.CallbackQuery):
+    await call.answer(cache_time=2)
+    await call.message.edit_text(text=config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
+
+
+@dp.callback_query_handler(type_work_callback.filter())
 async def diploma_info(call: types.CallbackQuery, callback_data: dict):
     await call.answer(cache_time=2)
-    await call.message.edit_text(text="Информация о дипломной работе\n Цена от 2000 р.",
+    await call.message.edit_text(text=config.works[callback_data["work"]]["description"],
                                  reply_markup=buttons.getSellWorkKeyboard(callback_data["work"]))
 
 
@@ -32,15 +38,10 @@ async def product_info_exit(call: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(setting_callback.filter(command="continue"))
 async def start_buy_product(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
-    mes = "Ошибка"
-    if callback_data["type"] == "Coursework":
-        mes = config.message["Coursework"]
-    elif callback_data["type"] == "Diploma":
-        mes = config.message["Diploma"]
     await state.update_data(type_work=callback_data["type"])
     await SellInfo.description.set()
     await function.set_state_active(state)
-    await call.message.edit_text(mes)
+    await call.message.edit_text(config.works[callback_data["type"]]["template"],reply_markup=buttons.getCustomKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.description)
@@ -93,10 +94,7 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
     state_active = data.get("state_active")
     keyboard = None
     if "SellInfo:promoCode" == state_active:
-        document = [data.get("document").file_id] if "document" in data.keys() else []
-        ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document, False, 0)
-        await state.finish()
-        mes = "Ваша заявка принята"
+        create_order(call, state)
     elif "SellInfo:document" == state_active:
         await SellInfo.promoCodeCheck.set()
         await function.set_state_active(state)
@@ -135,7 +133,7 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
         keyboard = buttons.getCustomKeyboard(noElement="Нет файла")
     elif "SellInfo:description" == state_active:
         await SellInfo.documentCheck.set()
-        description = ("Курсовая" if data["type_work"] == "Coursework" else "Дипломная") + "\n\n" + data.get("description") if "description" in data.keys() else ""
+        description = data["type_work"] + "\n\n" + data.get("description")
         await state.update_data(description=description)
         mes = config.message["comment_documentCheck"]
         keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
@@ -160,13 +158,7 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
         mes = config.message["comment_promoCodeCheck"]
         keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:promoCodeCheck" == state_active:
-        data = await state.get_data()
-        document = [data.get("document").file_id] if "document" in data.keys() else []
-        ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document, False, 0)
-        await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])
-        await state.finish()
-        mes = "Ваша заявка принята"
-        await call.message.edit_text(text=mes, reply_markup=keyboard)
+        create_order(call, state)
         return
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
@@ -176,3 +168,15 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text(config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
     await state.finish()
+
+
+def create_order(call, state):
+    data = await state.get_data()
+    document = [data.get("document").file_id] if "document" in data.keys() else []
+    percent = data.get("percent") if "percent" in data.keys() else False
+    discount = data.get("discount") if "discount" in data.keys() else 0
+    ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document, percent, discount)
+    await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])
+    await state.finish()
+    mes = "Ваша заявка принята"
+    await call.message.edit_text(text=mes)
