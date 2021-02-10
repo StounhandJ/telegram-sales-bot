@@ -1,3 +1,10 @@
+CREATE TABLE `department` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `staff` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `tag` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `messages` (
   `id` int(11) NOT NULL,
   `userID` int(11) NOT NULL,
@@ -54,6 +61,26 @@ CREATE TABLE `promo_codes` (
   `discount` int(10) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `tasks` (
+  `id` int(11) NOT NULL,
+  `orderID` int(11) NOT NULL,
+  `staff` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `message` text COLLATE utf8mb4_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `tasks_completes` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `taskID` int(10) UNSIGNED NOT NULL,
+  `userID` int(10) UNSIGNED NOT NULL,
+  `orderID` int(10) UNSIGNED NOT NULL,
+  `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `date` int(10) UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+ALTER TABLE `department`
+  ADD PRIMARY KEY (`id`);
 
 ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`);
@@ -73,6 +100,15 @@ ALTER TABLE `payment_history`
 ALTER TABLE `promo_codes`
   ADD PRIMARY KEY (`id`);
 
+ALTER TABLE `tasks`
+  ADD PRIMARY KEY (`id`);
+
+ALTER TABLE `tasks_completes`
+  ADD PRIMARY KEY (`id`);
+
+
+ALTER TABLE `department`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `messages`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
@@ -90,6 +126,12 @@ ALTER TABLE `payment_history`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `promo_codes`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `tasks`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `tasks_completes`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 COMMIT;
 

@@ -6,8 +6,8 @@ from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp
-from states.create_promoCode import CodeAdd
-from states.edit_promoCode import CodeEdit
+from states.admin_create_promoCode import CodeAdd
+from states.admin_edit_promoCode import CodeEdit
 from utils.db_api.models import promoCodesModel
 from utils import function
 

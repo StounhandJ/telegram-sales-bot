@@ -67,6 +67,7 @@ adminMessage = {
     "order_detailed_info": "Номер заказа <b>{orderID}</b>\nОплата: {price}\nКоментарий к заказу: {description}\nДата заказа: {date}\n",
     "order_close_text": "Напишите текст для отказа:",
     "order_close_confirm": "Отправить отказ?",
+
     "message_send": "Напишите сообщение для пользователя",
     "message_send_confirmation": "Проверить сообщение /mesCheck\nОтправить сообщение?",
     "message_yes_send": "Сообщение успешно отправленно пользователю",
@@ -75,6 +76,7 @@ adminMessage = {
     "document_add": "Документ добавлен",
     "img_add": "Изображение добавлено",
     "mes_add": "Сообщение добавлено",
+
     "code_main": "Список промокодов:\n{text}\n/codeAdd - Начать создание новго промокода\n/codeEdit codeID - Изменить промокод",
     "codes_missing": "Промокодов нет",
     "code_missing": "Данного промокода нет",
@@ -90,6 +92,7 @@ adminMessage = {
     "code_edit_back": "Меню изменений промокода закрыто",
     "code_del_yes": "Промокод удален",
     "code_del_no": "Удаление прмокода отменено",
+
     "messages_missing": "Сообщений нет",
     "message_missing": "Данного сообщения нет",
     "messages_info": "{num}. Номер сообщения <b>{id}</b> от {date}\n",
@@ -98,10 +101,26 @@ adminMessage = {
     "message_cancel": "Отправка сообщения пользователю отменена",
     "messages_main_order": "Список сообщений от покупателей:\n",
     "messages_main_all": "Список сообщений от обычныйх пользователей:\n",
+
     "order_pr_detailed_info": "Номер заказа <b>{orderID}</b>\nТекст заявки:\n{text}\nСкидка: {discount}\nДата заказа: {date}\n",
     "price_confirmation": "Отправить форму оплаты?",
     "admin_mes_order_provisional": "<b>Новый</b> заказ, нужно его рассмотреть и дать хорошую цену ; )\n/orderspr",
-    "admin_mes_order_paid": "<b>Оплачен</b> новый заказа, надо бы его сделать\n/orders"
+    "admin_mes_order_paid": "<b>Оплачен</b> новый заказа, надо бы его сделать\n/orders",
+
+    "departments_missing": "Отделов нет",
+    "department_missing": "Данный отдел не существует",
+    "departments_main": "Отделы:\n{text}\nКоманды:",
+    "department_info": "{num}. Название отдела: {name}\nТэг: @{tag}\nКоличество сотрудников: {count_staff}\n\n",
+    "department_detailed_info": "Название отдела: {name}\nТэг: @{tag}\nСотрудники: {count_staff}",
+    "department_add_name": "Укажите название отдела",
+    "department_add_tag": "Укажите тэг для отдела(Пример: admin)",
+    "department_add_user": "Укажите ID пользователя что добавить его",
+    "department_del_user": "Укажите ID пользователя что удалить его",
+    "department_edit": "/name: {name}\n/tag: @{tag}\n/add_user Добавить сотрудника\n/del_user Удалить сотрудника\nУдалить отдел /delete\nОтменить изменения /back\n",
+    "department_edit_no": "Изменение отменено",
+    "department_edit_back": "Меню изменений отдела закрыто",
+    "department_del_yes": "Отдел удален",
+    "department_del_no": "Удаление отдела отменено",
 }
 
 payMessage = {

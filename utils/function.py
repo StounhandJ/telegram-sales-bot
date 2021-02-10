@@ -8,3 +8,10 @@ def checkID(mes):
         return int(mes.split(' ')[1])
     except:
         return -1
+
+
+def check_first_tag(mes):
+    try:
+        return mes.split(' ')[1].split('@')[1]
+    except:
+        return "None"

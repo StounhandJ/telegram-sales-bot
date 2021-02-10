@@ -94,7 +94,7 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
     state_active = data.get("state_active")
     keyboard = None
     if "SellInfo:promoCode" == state_active:
-        create_order(call, state)
+        await create_order(call, state)
     elif "SellInfo:document" == state_active:
         await SellInfo.promoCodeCheck.set()
         await function.set_state_active(state)
@@ -158,7 +158,7 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
         mes = config.message["comment_promoCodeCheck"]
         keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:promoCodeCheck" == state_active:
-        create_order(call, state)
+        await create_order(call, state)
         return
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
@@ -166,11 +166,11 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=SellInfo)
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
-    await call.message.edit_text(config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
     await state.finish()
+    await call.message.edit_text(config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
 
 
-def create_order(call, state):
+async def create_order(call, state):
     data = await state.get_data()
     document = [data.get("document").file_id] if "document" in data.keys() else []
     percent = data.get("percent") if "percent" in data.keys() else False
