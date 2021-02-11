@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 
@@ -8,10 +6,8 @@ from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp, bot
-from states.admin_close_order import AdminCloseOrder
 from states.admin_create_department import DepartmentAdd
 from states.admin_edit_department import DepartmentEdit
-from states.admin_mes_order import AdminMesOrder
 from utils.db_api.models import departmentModel
 from utils import function
 
@@ -23,7 +19,7 @@ async def show_orders(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
     departments = departmentModel.get_all_departments()
-    if departments["success"]:
+    if departments["code"] == 200:
         text = ""
         num = 1
         for item in departments["data"]:
@@ -40,7 +36,8 @@ async def show_orders(message: types.Message):
 async def show_info_order(message: types.Message):
     mes = config.adminMessage["department_missing"]
     department = departmentModel.get_department(function.check_first_tag(message.text))
-    if department["success"]:
+    if department["code"] == 200:
+        department = department["data"]
         count_staff = ""
         for staff in department["staff"]:
             user = await bot.get_chat(staff)
@@ -122,10 +119,10 @@ async def create_code_cancel(call: types.CallbackQuery, state: FSMContext):
 async def start_edit_code(message: types.Message, state: FSMContext):
     mes = config.adminMessage["department_missing"]
     department = departmentModel.get_department(function.check_first_tag(message.text))
-    if department["success"]:
-        await state.update_data(departmentEditID=department["id"])
-        mes = config.adminMessage["department_edit"].format(name=department["name"],
-                                                            tag=department["tag"])
+    if department["code"] == 200:
+        await state.update_data(departmentEditID=department["data"]["id"])
+        mes = config.adminMessage["department_edit"].format(name=department["data"]["name"],
+                                                            tag=department["data"]["tag"])
         await DepartmentEdit.zero.set()
     await message.answer(mes, reply_markup=menu)
 
@@ -191,7 +188,7 @@ async def edit_code_name(message: types.Message, state: FSMContext):
     if message.text.isdigit():
         id = int(message.text)
         department = departmentModel.get_department_id(data.get("departmentEditID"))
-        if department["success"] and id in department["staff"]:
+        if department["code"] == 200 and id in department["data"]["staff"]:
             await state.update_data(del_user=id)
             await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                                  reply_markup=buttons.getConfirmationKeyboard())
@@ -220,11 +217,11 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     state_active = data.get("state_active")
     department = departmentModel.get_department_id(data.get("departmentEditID"))
-    if not department["success"]:
+    if not department["code"] == 200:
         await state.finish()
         await call.message.edit_text(config.adminMessage["department_missing"])
         return
-
+    department = department["data"]
     if "DepartmentEdit:delete" == state_active:
         departmentModel.delete_department(department["id"])
         await state.finish()

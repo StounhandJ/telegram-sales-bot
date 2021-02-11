@@ -18,7 +18,7 @@ async def order_messages(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
     messages = messagesModel.get_order_messages()
-    if messages["success"]:
+    if messages["code"] == 200:
         mes = config.adminMessage["messages_main_order"]
         num = 1
         for item in messages["data"]:
@@ -38,7 +38,7 @@ async def all_messages(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
     messages = messagesModel.get_all_messages()
-    if messages["success"]:
+    if messages["code"] == 200:
         mes = config.adminMessage["messages_main_all"]
         num = 1
         for item in messages["data"]:
@@ -57,7 +57,8 @@ async def all_messages(message: types.Message):
 async def show_info_mes(message: types.Message):
     mes = "Данное сообщние не найдено"
     messageInfo = messagesModel.get_message(function.checkID(message.text))
-    if messageInfo["success"]:
+    if messageInfo["code"] == 200:
+        messageInfo = messageInfo["data"]
         mes = config.adminMessage["message_detailed_info"].format(id=messageInfo["id"], text=messageInfo["message"],
                                                                   date=datetime.utcfromtimestamp(
                                                                       messageInfo["date"]).strftime(
@@ -77,10 +78,10 @@ async def show_info_mes(message: types.Message):
 async def start_message_send(message: types.Message, state: FSMContext):
     mes = config.adminMessage["message_missing"]
     messageInfo = messagesModel.get_message(function.checkID(message.text))
-    if messageInfo["success"] and not messageInfo["active"]:
+    if messageInfo["code"] == 200 and not messageInfo["data"]["active"]:
         mes = config.adminMessage["order_completed"]
-    elif messageInfo["success"]:
-        await state.update_data(message_sendID=messageInfo["id"])
+    elif messageInfo["code"] == 200:
+        await state.update_data(message_sendID=messageInfo["data"]["id"])
         await AdminMesUser.message.set()
         mes = config.adminMessage["message_send"]
     await message.answer(mes, reply_markup=menu)
@@ -108,9 +109,9 @@ async def adding_message_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     messageInfo = messagesModel.get_message(data.get("message_sendID"))
     text = data.get("message") if "message" in data.keys() else ""
-    if messageInfo["success"] and messageInfo["active"]:
+    if messageInfo["code"] == 200 and messageInfo["data"]["active"]:
         messagesModel.updateActive_message(data.get("message_sendID"))
-        await bot.send_message(chat_id=messageInfo["userID"], text=text, reply_markup=menu)
+        await bot.send_message(chat_id=messageInfo["data"]["userID"], text=text, reply_markup=menu)
         mes = config.adminMessage["message_yes_send"]
     await call.message.edit_text(mes)
     await state.finish()

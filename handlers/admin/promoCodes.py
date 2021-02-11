@@ -18,7 +18,7 @@ from utils import function
 async def show_codeList(message: types.Message):
     mes = config.adminMessage["codes_missing"]
     codes = promoCodesModel.get_ALLPromoCode()
-    if codes["success"]:
+    if codes["code"] == 200:
         text = ""
         num = 1
         for code in codes["data"]:
@@ -135,7 +135,8 @@ async def create_code_cancel(call: types.CallbackQuery, state: FSMContext):
 async def start_edit_code(message: types.Message, state: FSMContext):
     mes = config.adminMessage["code_missing"]
     code = promoCodesModel.get_promo_code_id(function.checkID(message.text))
-    if code["success"]:
+    if code["code"] == 200:
+        code = code["data"]
         await state.update_data(codeEditID=code["id"])
         mes = config.adminMessage["code_edit"].format(name=code["name"],
                                                       code=code["code"],
@@ -216,7 +217,7 @@ async def edit_code_percent(message: types.Message, state: FSMContext):
 async def edit_code_discount(message: types.Message, state: FSMContext):
     data = await state.get_data()
     code = promoCodesModel.get_promo_code_id(data.get("codeEditID"))
-    if code["success"] and message.text.isdigit() and (code["percent"] and int(message.text) <= 95):
+    if code["code"] == 200 and message.text.isdigit() and (code["data"]["percent"] and int(message.text) <= 95):
         await state.update_data(discount=message.text)
         await CodeAdd.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
@@ -228,14 +229,13 @@ async def edit_code_discount(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=CodeEdit)
 async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    keys = data.keys()
     state_active = data.get("state_active")
     code = promoCodesModel.get_promo_code_id(data.get("codeEditID"))
-    if not code["success"]:
+    if not code["code"] == 200:
         await state.finish()
         await call.message.edit_text(config.adminMessage["code_missing"])
         return
-
+    code = code["data"]
     if "CodeEdit:delete" == state_active:
         promoCodesModel.delete_promo_code(code["id"])
         await state.finish()
@@ -243,14 +243,13 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
         return
 
     if "CodeEdit:name" == state_active:
-        code["name"] = data.get("name") if "name" in keys else ""
+        promoCodesModel.update_promo_code(code["id"], data.get("name"), code["code"], code["percent"], code["discount"])
     elif "CodeEdit:code" == state_active:
-        code["code"] = data.get("code") if "code" in keys else ""
+        promoCodesModel.update_promo_code(code["id"], code["name"], data.get("code"), code["percent"], code["discount"])
     elif "CodeEdit:percent" == state_active:
-        code["percent"] = data.get("percent") if "percent" in keys else ""
+        promoCodesModel.update_promo_code(code["id"], code["name"], code["code"], data.get("percent"), code["discount"])
     elif "CodeEdit:discount" == state_active:
-        code["discount"] = data.get("discount") if "discount" in keys else ""
-    promoCodesModel.update_promo_code(code["id"], code["name"], code["code"], code["percent"], code["discount"])
+        promoCodesModel.update_promo_code(code["id"], code["name"], code["code"], code["percent"], data.get("discount"))
     await CodeEdit.zero.set()
     await function.set_state_active(state)
     await call.message.edit_text(config.adminMessage["code_edit"].format(name=code["name"],

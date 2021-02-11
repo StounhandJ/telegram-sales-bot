@@ -14,6 +14,7 @@ async def bot_start(message: types.Message):
 
 @dp.message_handler(CommandHelp())
 async def bot_help(message: types.Message):
+    print(message.from_user.id)
     await message.answer("Думаю поймешь ;)")
 
 

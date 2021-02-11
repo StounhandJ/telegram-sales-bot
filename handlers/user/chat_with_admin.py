@@ -45,7 +45,7 @@ async def message_add_doc(message: types.Message, state: FSMContext):
     await UserMes.wait.set()
     await message.answer(config.message["document_confirmation"].format(
         text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
-                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
+        reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=UserMes.document, content_types=types.ContentType.PHOTO)
@@ -61,17 +61,9 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
     state_active = data.get("state_active")
     keyboard = None
     if "UserMes:document" == state_active:
-        orders = orderModel.get_ALLOrders()
-        isOrder = orders["success"] and call.from_user.id in [order["userID"] for order in orders["data"]]
-        messagesModel.create_messages(call.from_user.id,
-                                      data.get("message") if "message" in data.keys() else "",
-                                      [data.get("document").file_id], isOrder)
-        await state.finish()
-        await notify_admins_message("Новое сообщение от " + (
-            "<b>пользователя с заказом</b>" if isOrder else "<b>обычного пользователя</b>"))
-        await call.message.edit_text(config.message["message_sent"])
+        await create_mes(call, state)
         return
-    await call.message.edit_text(text=mes,reply_markup=keyboard)
+    await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=UserMes)
@@ -82,14 +74,7 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
     mes = ""
     keyboard = None
     if "UserMes:document" == state_active:
-        orders = orderModel.get_ALLOrders()
-        isOrder = orders["success"] and call.from_user.id in [order["userID"] for order in orders["data"]]
-        messagesModel.create_messages(call.from_user.id,
-                                      data.get("message") if "message" in data.keys() else "", [data.get("document").file_id], isOrder)
-        await state.finish()
-        await notify_admins_message("Новое сообщение от " + (
-            "<b>пользователя с заказом</b>" if isOrder else "<b>обычного пользователя</b>"))
-        await call.message.edit_text(config.message["message_sent"])
+        await create_mes(call, state)
         return
     elif "UserMes:documentCheck" == state_active:
         await UserMes.document.set()
@@ -110,14 +95,7 @@ async def adding_comment_no(call: types.CallbackQuery, state: FSMContext):
     if "UserMes:document" == state_active:
         await UserMes.document.set()
     elif "UserMes:documentCheck" == state_active:
-        orders = orderModel.get_ALLOrders()
-        isOrder = orders["success"] and call.from_user.id in [order["userID"] for order in orders["data"]]
-        messagesModel.create_messages(call.from_user.id,
-                                      data.get("message") if "message" in data.keys() else "", [], isOrder)
-        await state.finish()
-        await notify_admins_message("Новое сообщение от " + (
-            "<b>пользователя с заказом</b>" if isOrder else "<b>обычного пользователя</b>"))
-        await call.message.edit_text(config.message["message_sent"])
+        await create_mes(call, state)
         return
     elif "UserMes:message" == state_active:
         await UserMes.message.set()
@@ -129,3 +107,16 @@ async def adding_comment_no(call: types.CallbackQuery, state: FSMContext):
 async def adding_comment_cancel(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await call.message.edit_text(config.message["message_cancel"])
+
+
+async def create_mes(call, state):
+    data = await state.get_data()
+    orders = orderModel.get_ALLOrders()
+    message = data.get("message") if "message" in data.keys() else ""
+    document = [data.get("document").file_id] if "document" in data.keys() else []
+    isOrder = orders["code"] == 200 and call.from_user.id in [order["userID"] for order in orders["data"]]
+    messagesModel.create_messages(call.from_user.id, message, document, isOrder)
+    await state.finish()
+    await notify_admins_message("Новое сообщение от " + (
+        "<b>пользователя с заказом</b>" if isOrder else "<b>обычного пользователя</b>"))
+    await call.message.edit_text(config.message["message_sent"])

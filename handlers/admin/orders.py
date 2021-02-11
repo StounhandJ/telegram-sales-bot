@@ -21,7 +21,7 @@ async def show_orders(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
     orders = orderModel.get_ALLOrders()
-    if orders["success"]:
+    if orders["code"] == 200:
         text = ""
         num = 1
         for item in orders["data"]:
@@ -41,7 +41,8 @@ async def show_orders(message: types.Message):
 async def show_info_order(message: types.Message):
     mes = config.adminMessage["order_missing"]
     order = orderModel.get_order(function.checkID(message.text))
-    if order["success"]:
+    if order["code"] == 200:
+        order = order["data"]
         mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"],
                                                                 price=order["price"],
                                                                 description=order["description"],
@@ -61,9 +62,9 @@ async def show_info_order(message: types.Message):
 async def close_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = orderModel.get_order(function.checkID(message.text))
-    if order["success"]:
+    if order["code"] == 200:
         mes = config.adminMessage["order_confirm"]
-        await state.update_data(orderID=order["id"])
+        await state.update_data(orderID=order["data"]["id"])
         await AdminCloseOrder.wait.set()
     await message.answer(mes, reply_markup=buttons.getConfirmationKeyboard())
 
@@ -73,11 +74,12 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     data = await state.get_data()
     order = orderModel.get_order(data.get("orderID"))
-    if order["success"] and not order["active"]:
+    if order["code"] == 200 and not order["data"]["active"]:
         mes = config.adminMessage["order_completed"]
-    elif order["success"]:
-        orderModel.updateActive_order(order["id"])
-        mes = config.adminMessage["order_close"].format(id=order["id"])
+    elif order["code"] == 200:
+        orderModel.updateActive_order(order["data"]["id"])
+        mes = config.adminMessage["order_close"].format(id=order["data"]["id"])
+        await bot.send_message(chat_id=order["data"]["userID"], text=config.message["order_close"], reply_markup=menu)
     await state.finish()
     await call.message.edit_text(mes)
 
@@ -94,11 +96,11 @@ async def message_send_no(call: types.CallbackQuery, state: FSMContext):
 async def start_message_send(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = orderModel.get_order(function.checkID(message.text))
-    if order["success"] and not order["active"]:
+    if order["code"] == 200 and not order["data"]["active"]:
         mes = config.adminMessage["order_completed"]
-    elif order["success"]:
-        await state.update_data(message_sendID=order["userID"])
-        await state.update_data(orderID=order["id"])
+    elif order["code"] == 200:
+        await state.update_data(message_sendID=order["data"]["userID"])
+        await state.update_data(orderID=order["data"]["id"])
         await AdminMesOrder.message.set()
         mes = config.adminMessage["message_send"]
     await message.answer(mes, reply_markup=menu)
@@ -167,7 +169,7 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     await call.answer(cache_time=2)
     data = await state.get_data()
     order = orderModel.get_order(data.get("orderID"))
-    if not order["success"] or (order["success"] and not order["active"]):
+    if not order["code"] == 200 or (order["code"] == 200 and not order["data"]["active"]):
         await state.finish()
         await call.message.edit_text(config.adminMessage["order_completed"])
         return
@@ -176,10 +178,14 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     mes = data.get("description") if "description" in keys else ""
     doc = data.get("document") if "document" in keys else []
     img = data.get("img") if "img" in keys else []
-    if mes != "":
-        await bot.send_message(chat_id=chatID, text=mes, reply_markup=menu)
-    for item in doc:
-        await bot.send_document(chat_id=chatID, document=item.file_id, reply_markup=menu)
+    await bot.send_message(chat_id=chatID, text=config.message["order_complete"], reply_markup=menu)
+    if len(doc) == 1:
+        await bot.send_document(chat_id=chatID, caption=mes, document=doc[0].file_id)
+    elif len(doc) > 1:
+        for document in doc:
+            await bot.send_document(chat_id=chatID, document=document.file_id)
+        if mes != "":
+            await bot.send_message(chat_id=chatID, text=mes, reply_markup=menu)
     for item in img:
         await bot.send_photo(chat_id=chatID, photo=item[len(item) - 1].file_id, reply_markup=menu)
     await state.finish()

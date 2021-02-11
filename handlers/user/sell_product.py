@@ -74,7 +74,8 @@ async def message_add_doc(message: types.Message):
 @dp.message_handler(state=SellInfo.promoCode)
 async def adding_promoCode(message: types.Message, state: FSMContext):
     code = promoCodesModel.get_promo_code(message.text)
-    if code["success"]:
+    if code["code"] == 200:
+        code = code["data"]
         await state.update_data(percent=code["percent"])
         await state.update_data(discount=code["discount"])
         await SellInfo.wait.set()
@@ -111,13 +112,7 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
     state_active = data.get("state_active")
     keyboard = None
     if "SellInfo:promoCode" == state_active:
-        document = [data.get("document").file_id] if "document" in data.keys() else []
-        ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document,
-                                                       data.get("percent"), data.get("discount"))
-        await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])
-        await state.finish()
-        mes = "Ваша заявка принята"
-        await call.message.edit_text(text=mes, reply_markup=keyboard)
+        await create_order(call, state)
         return
     elif "SellInfo:promoCodeCheck" == state_active:
         await SellInfo.promoCode.set()

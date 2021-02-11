@@ -1,47 +1,28 @@
 import json
 
-from utils.db_api import db
+from utils.db_api.db import DataBase
 import time
 
 
 def create_payment(userID, description, document, price, secret_key):
-    try:
-        db.DataBase.request(
-            """INSERT INTO `payment`(`userID`, `description`, `document`, `price`, `secret_key`,`date`) VALUES ({userID},"{description}",'{document}',{price},"{secret_key}",{date})""".format(
-                userID=userID, description=description, document=json.dumps(document), price=price, secret_key=secret_key,
-                date=int(time.time())))
-        return {"success": True}
-    except:
-        return {"success": False}
+    return DataBase.request(
+        "INSERT INTO `payment`(`userID`, `description`, `document`, `price`, `secret_key`,`date`) VALUES (%(userID)s,%(description)s,%(document)s,%(price)s,%(secret_key)s,%(date)s)",
+        {"userID": userID, "description": description, "document": json.dumps(document), "price": price,
+         "secret_key": secret_key,
+         "date": int(time.time())})
 
 
 def get_payment(secret_key):
-    try:
-        response = db.DataBase.request(
-            """SELECT `userID`, `description`, `document`, `price`, `secret_key`, `date` FROM `payment` WHERE `secret_key`="{secret_key}" """.format(
-                secret_key=secret_key))[0]
-        return {"success": True, "userID": response[0], "description": response[1], "document": json.loads(response[2]),
-                "price": int(response[3]),
-                "secret_key": response[4], "date": int(response[5])}
-    except:
-        return {"success": False}
+    return DataBase.request(
+        "SELECT `userID`, `description`, `document`, `price`, `secret_key`, `date` FROM `payment` WHERE `secret_key`=%(secret_key)s",
+        {"secret_key": secret_key})
 
 
 def del_payment(secret_key):
-    try:
-        db.DataBase.request(
-            """DELETE FROM `payment` WHERE `secret_key`="{secret_key}" """.format(
-                secret_key=secret_key))
-        return {"success": True}
-    except:
-        return {"success": False}
+    return DataBase.request("DELETE FROM `payment` WHERE `secret_key`=%(secret_key)s", {"secret_key": secret_key})
 
 
 def add_payment_history(userID, amount):
-    try:
-        db.DataBase.request(
-            """INSERT INTO `payment_history`(`userID`, `amount`, `date`) VALUES ({userID},{amount},{date})""".format(
-                userID=userID, amount=amount, date=int(time.time())))
-        return {"success": True}
-    except:
-        return {"success": False}
+    return DataBase.request(
+        "INSERT INTO `payment_history`(`userID`, `amount`, `date`) VALUES (%(userID)s,%(amount)s,%(date)s)",
+        {"userID": userID, "amount": amount, "date": int(time.time())})

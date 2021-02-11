@@ -21,7 +21,7 @@ async def show_orders(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
     orders = ordersProcessingModel.get_ALLOrders_provisional()
-    if orders["success"]:
+    if orders["code"] == 200:
         text = ""
         num = 1
         for item in orders["data"]:
@@ -41,7 +41,8 @@ async def show_orders(message: types.Message):
 async def show_info_order(message: types.Message):
     mes = config.adminMessage["order_missing"]
     order = ordersProcessingModel.get_order_provisional(function.checkID(message.text))
-    if order["success"]:
+    if order["code"] == 200:
+        order = order["data"]
         mes = config.adminMessage["order_pr_detailed_info"].format(orderID=order["id"], text=order["text"],
                                                                    discount=str(order["discount"]) + (
                                                                        "%" if order["percent"] else " р."),
@@ -61,11 +62,11 @@ async def show_info_order(message: types.Message):
 async def send_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = ordersProcessingModel.get_order_provisional(function.checkID(message.text))
-    if order["success"] and not order["active"]:
+    if order["code"] == 200 and not order["data"]["active"]:
         mes = config.adminMessage["order_completed"]
-    elif order["success"]:
-        await state.update_data(message_sendID=order["userID"])
-        await state.update_data(orderID=order["id"])
+    elif order["code"] == 200:
+        await state.update_data(message_sendID=order["data"]["userID"])
+        await state.update_data(orderID=order["data"]["id"])
         await AdminPriceOrder.price.set()
         mes = config.adminMessage["price_send"]
     await message.answer(mes, reply_markup=menu)
@@ -75,9 +76,9 @@ async def send_order(message: types.Message, state: FSMContext):
 async def close_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = ordersProcessingModel.get_order_provisional(function.checkID(message.text))
-    if order["success"]:
+    if order["code"] == 200:
         mes = config.adminMessage["order_close_text"]
-        await state.update_data(orderID=message.text)
+        await state.update_data(orderID=order["data"]["id"])
         await AdminCloseOrderPr.message.set()
     await message.answer(mes, reply_markup=menu)
 
@@ -95,8 +96,8 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     data = await state.get_data()
     order = ordersProcessingModel.get_order_provisional(data.get("orderID"))
-    if order["success"]:
-        await bot.send_message(chat_id=order["userID"], text=data.get("text"))
+    if order["code"] == 200:
+        await bot.send_message(chat_id=order["data"]["userID"], text=data.get("text"))
         ordersProcessingModel.updateActive_order(data.get("orderID"))
         mes = config.adminMessage["message_yes_send"]
     await state.finish()
@@ -126,9 +127,10 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     mes = "Все пропало ((("
     data = await state.get_data()
     order = ordersProcessingModel.get_order_provisional(data.get("orderID"))
-    if order["success"] and not order["active"]:
+    if order["code"] == 200 and not order["data"]["active"]:
         mes = config.adminMessage["order_completed"]
-    elif order["success"]:
+    elif order["code"] == 200:
+        order = order["data"]
         amount = int(data.get("price")) - (
             int(data.get("price")) / 100 * order["discount"] if order["percent"] and order["discount"] != 0 else order[
                 "discount"])

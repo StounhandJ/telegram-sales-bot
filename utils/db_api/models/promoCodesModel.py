@@ -1,61 +1,35 @@
-from utils.db_api import db
+from utils.db_api.db import DataBase
 
 
 def get_promo_code_id(id):
-    try:
-        response = db.DataBase.request(
-            """SELECT `id`, `name`, `code`,`percent`, `discount` FROM `promo_codes` WHERE `id`={id}""".format(
-                id=id))[0]
-        return {"success": True, "id": int(response[0]), "name": response[1], "code": response[2], "percent": response[3],
-                "discount": int(response[4])}
-    except:
-        return {"success": False}
+    return DataBase.request(
+        "SELECT `id`, `name`, `code`,`percent`, `discount` FROM `promo_codes` WHERE `id`=%(id)s",
+        {"id": id})
 
 
 def get_promo_code(code):
-    try:
-        response = db.DataBase.request(
-            """SELECT `id`, `name`, `code`, `percent`, `discount` FROM `promo_codes` WHERE `code`="{code}" """.format(
-                code=code))[0]
-        return {"success": True, "id": int(response[0]), "name": response[1], "code": response[2], "percent": response[3],
-                "discount": int(response[4])}
-    except:
-        return {"success": False}
+    return DataBase.request(
+        "SELECT `id`, `name`, `code`, `percent`, `discount` FROM `promo_codes` WHERE `code`=%(code)s",
+        {"code": code})
 
 
 def get_ALLPromoCode():
-    try:
-        out = []
-        for var in db.DataBase.request("""SELECT `id`, `name`, `code`, `percent`, `discount` FROM `promo_codes`"""):
-            out.append({"id": int(var[0]), "name": var[1], "code": var[2], "percent": var[3], "discount": int(var[4])})
-        return {"success": True, "data": out}
-    except:
-        return {"success": False}
+    response = DataBase.request("SELECT `id`, `name`, `code`, `percent`, `discount` FROM `promo_codes`")
+    response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
+    return response
 
 
 def create_promo_code(name, code, percent, discount):
-    try:
-        db.DataBase.request("""INSERT INTO `promo_codes`(`name`, `code`, `percent`, `discount`) VALUES ("{name}","{code}",{percent},{discount})""".format(
-            name=name, code=code,percent=percent, discount=discount
-        ))
-        return {"success": True}
-    except:
-        return {"success": False}
+    return DataBase.request(
+        "INSERT INTO `promo_codes`(`name`, `code`, `percent`, `discount`) VALUES (%(name)s,%(code)s,%(percent)s,%(discount)s)",
+        {"name": name, "code": code, "percent": percent, "discount": discount})
 
 
 def update_promo_code(id, name, code, percent, discount):
-    try:
-        db.DataBase.request("""UPDATE `promo_codes` SET `name`="{name}",`code`="{code}",`percent`={percent},`discount`={discount} WHERE `id`={id}""".format(
-            id=id, name=name, code=code, percent=percent, discount=discount
-        ))
-        return {"success": True}
-    except:
-        return {"success": False}
+    return DataBase.request(
+        "UPDATE `promo_codes` SET `name`=%(name)s,`code`=%(code)s,`percent`=%(percent)s,`discount`=%(discount)s WHERE `id`=%(id)s",
+        {"name": name, "code": code, "percent": percent, "discount": discount, "id": id})
 
 
 def delete_promo_code(id):
-    try:
-        db.DataBase.request("""DELETE FROM `promo_codes` WHERE `id`={id}""".format(id=id))
-        return {"success": True}
-    except:
-        return {"success": False}
+    return DataBase.request("DELETE FROM `promo_codes` WHERE `id`=%(id)s", {"id": id})
