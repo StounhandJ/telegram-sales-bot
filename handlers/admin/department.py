@@ -16,8 +16,6 @@ from utils import function
 
 @dp.message_handler(user_id=config.ADMINS, commands=["departments"])
 async def show_orders(message: types.Message):
-    months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
-              "Ноябрь", "Декабрь"]
     departments = departmentModel.get_all_departments()
     if departments["code"] == 200:
         text = ""
@@ -67,10 +65,14 @@ async def create_code_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=DepartmentAdd.tag, user_id=config.ADMINS)
 async def create_code_code(message: types.Message, state: FSMContext):
-    await state.update_data(tag=message.text)
-    await DepartmentAdd.wait.set()
-    await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить создание"))
+    if not "@" in message.text and not "." in message.text and not "\"" in message.text:
+        await state.update_data(tag=message.text)
+        await DepartmentAdd.wait.set()
+        await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
+                             reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить создание"))
+    else:
+        await message.answer("Недопустимые символы (@ . \")",
+                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.message_handler(state=DepartmentAdd.wait)
@@ -175,9 +177,14 @@ async def edit_code_back(message: types.Message, state: FSMContext):
 @dp.message_handler(state=DepartmentEdit.add_user, user_id=config.ADMINS)
 async def edit_code_name(message: types.Message, state: FSMContext):
     if message.text.isdigit():
-        await state.update_data(add_user=message.text)
-        await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                             reply_markup=buttons.getConfirmationKeyboard())
+        try:
+            user = await bot.get_chat(message.text)
+            await state.update_data(add_user=message.text)
+            await message.answer(user.full_name + "\n" + config.adminMessage["code_add_confirmation"],
+                                 reply_markup=buttons.getConfirmationKeyboard())
+        except:
+            await message.answer("Такой пользователь не существует.",
+                                 reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
     else:
         await message.answer("Вы ввели не число, повторите", reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
 
@@ -193,7 +200,8 @@ async def edit_code_name(message: types.Message, state: FSMContext):
             await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                                  reply_markup=buttons.getConfirmationKeyboard())
         else:
-            await message.answer("Данного пользователя и так нет в отделе)", reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+            await message.answer("Данного пользователя и так нет в отделе)",
+                                 reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
     else:
         await message.answer("Вы ввели не число, повторите", reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
 
@@ -207,9 +215,13 @@ async def edit_code_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=DepartmentEdit.tag, user_id=config.ADMINS)
 async def edit_code_code(message: types.Message, state: FSMContext):
-    await state.update_data(tag=message.text)
-    await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                         reply_markup=buttons.getConfirmationKeyboard())
+    if not "@" in message.text and not "." in message.text and not "\"" in message.text:
+        await state.update_data(tag=message.text)
+        await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
+                             reply_markup=buttons.getConfirmationKeyboard())
+    else:
+        await message.answer("Недопустимые символы (@ . \")",
+                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=DepartmentEdit)
