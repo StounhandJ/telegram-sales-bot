@@ -68,7 +68,9 @@ CREATE TABLE `promo_codes` (
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `code` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `percent` tinyint(1) NOT NULL,
-  `discount` int(10) UNSIGNED NOT NULL
+  `discount` int(10) UNSIGNED NOT NULL,
+  `limitation_use` tinyint(1) NOT NULL,
+  `count` int(7) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `tasks` (

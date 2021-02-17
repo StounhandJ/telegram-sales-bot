@@ -7,4 +7,5 @@ class CodeEdit(StatesGroup):
     code = State()
     percent = State()
     discount = State()
+    count = State()
     delete = State()
