@@ -10,7 +10,7 @@ from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp, bot
 from states.admin_close_order import AdminCloseOrder
 from states.admin_mes_order import AdminMesOrder
-from utils.db_api.models import orderModel
+from utils.db_api.models import orderModel, tasksModel
 from utils import function
 
 
@@ -78,6 +78,7 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
         mes = config.adminMessage["order_completed"]
     elif order["code"] == 200:
         orderModel.updateActive_order(order["data"]["id"])
+        tasksModel.del_task_orderID(order["data"]["id"])
         mes = config.adminMessage["order_close"].format(id=order["data"]["id"])
         await bot.send_message(chat_id=order["data"]["userID"], text=config.message["order_close"], reply_markup=menu)
     await state.finish()
@@ -179,7 +180,9 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     doc = data.get("document") if "document" in keys else []
     img = data.get("img") if "img" in keys else []
     await bot.send_message(chat_id=chatID, text=config.message["order_complete"], reply_markup=menu)
-    if len(doc) == 1:
+    if len(doc) == 0 and mes != "":
+        await bot.send_message(chat_id=chatID, text=mes, reply_markup=menu)
+    elif len(doc) == 1:
         await bot.send_document(chat_id=chatID, caption=mes, document=doc[0].file_id)
     elif len(doc) > 1:
         for document in doc:

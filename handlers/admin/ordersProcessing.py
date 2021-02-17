@@ -138,7 +138,7 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
         PRICE = types.LabeledPrice(label="Работа на заказ", amount=amount * 100)
         secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
         await bot.send_invoice(
-            call.from_user.id,
+            chat_id=order["userID"],
             title=config.payMessage["title"],
             description=config.payMessage["description"],
             provider_token=config.PAYMENT_TOKEN,

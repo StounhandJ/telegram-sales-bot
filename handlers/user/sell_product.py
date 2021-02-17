@@ -5,7 +5,7 @@ from data import config
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import setting_callback, confirmation_callback, type_work_callback
 from loader import dp
-from states.sell_info import SellInfo
+from states.user_sell_info import SellInfo
 from utils.db_api.models import ordersProcessingModel, promoCodesModel
 from utils.notify_admins import notify_admins_message
 from utils import function

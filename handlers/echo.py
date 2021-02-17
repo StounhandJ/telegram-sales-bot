@@ -14,7 +14,8 @@ async def bot_echo(message: types.Message):
 
 @dp.message_handler(state="*", content_types=types.ContentTypes.ANY)
 async def bot_echo_all(message: types.Message, state: FSMContext):
-    await message.answer(f"Ошибка сообщения в состояние.\nThis is bug((")
+    await message.answer("Я думаю так нельзя ;(")
+    # await message.answer(f"Ошибка сообщения в состояние.\nThis is bug((")
     # await message.answer(f"Эхо в состоянии <code>{state}</code>.\n"
     #                      f"\nСодержание сообщения:\n"
     #                      f"<code>{message}</code>")
