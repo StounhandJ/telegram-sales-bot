@@ -39,7 +39,7 @@ async def start_edit_code(message: types.Message, state: FSMContext):
     await message.answer(mes, reply_markup=menu)
 
 
-@dp.message_handler(user_id=config.ADMINS, commands=["task_list"])
+@dp.message_handler(user_id=config.ADMINS, commands=["task_list_a"])
 async def close_order(message: types.Message, state: FSMContext):
     tasks = tasksModel.get_all_tasks()
     mes_start = "Задачи не установлены"

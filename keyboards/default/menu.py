@@ -7,3 +7,12 @@ menu = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
+
+admin_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="Заказы"), KeyboardButton(text="Заказы на рассмотрении")],
+        [KeyboardButton(text="Сообщения от пользователей"), KeyboardButton(text="Сообщения от заказчиков")],
+        [KeyboardButton(text="Отделы"), KeyboardButton(text="Промокоды")],
+    ],
+    resize_keyboard=True
+)

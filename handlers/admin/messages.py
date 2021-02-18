@@ -2,9 +2,9 @@ from datetime import datetime
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.builtin import Text
 
 from data import config
-from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp, bot
@@ -13,7 +13,7 @@ from utils.db_api.models import messagesModel
 from utils import function
 
 
-@dp.message_handler(user_id=config.ADMINS, commands=["ordermes", "mesorder"])
+@dp.message_handler(Text(equals=["Сообщения от заказчиков"]), user_id=config.ADMINS)
 async def order_messages(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
@@ -30,10 +30,10 @@ async def order_messages(message: types.Message):
             num += 1
     else:
         mes = config.adminMessage["messages_missing"]
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
-@dp.message_handler(user_id=config.ADMINS, commands=["allmes", "mesall"])
+@dp.message_handler(Text(equals=["Сообщения от пользователей"]), user_id=config.ADMINS)
 async def all_messages(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
@@ -50,7 +50,7 @@ async def all_messages(message: types.Message):
             num += 1
     else:
         mes = config.adminMessage["messages_missing"]
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["mesinfo", "infomes"])
@@ -71,7 +71,7 @@ async def show_info_mes(message: types.Message):
         elif len(messageInfo["document"]) > 1:
             for document in messageInfo["document"]:
                 await message.answer_document(document=document)
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["usend", "usersend", "sendu", "usenduser"])
@@ -84,7 +84,7 @@ async def start_message_send(message: types.Message, state: FSMContext):
         await state.update_data(message_sendID=messageInfo["data"]["id"])
         await AdminMesUser.message.set()
         mes = config.adminMessage["message_send"]
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(state=AdminMesUser.message, user_id=config.ADMINS)
@@ -111,7 +111,7 @@ async def adding_message_yes(call: types.CallbackQuery, state: FSMContext):
     text = data.get("message") if "message" in data.keys() else ""
     if messageInfo["code"] == 200 and messageInfo["data"]["active"]:
         messagesModel.updateActive_message(data.get("message_sendID"))
-        await bot.send_message(chat_id=messageInfo["data"]["userID"], text=text, reply_markup=menu)
+        await bot.send_message(chat_id=messageInfo["data"]["userID"], text=text)
         mes = config.adminMessage["message_yes_send"]
     await call.message.edit_text(mes)
     await state.finish()

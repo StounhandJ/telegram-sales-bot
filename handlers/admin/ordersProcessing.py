@@ -4,9 +4,9 @@ from datetime import datetime
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.builtin import Text
 
 from data import config
-from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp, bot
@@ -16,7 +16,7 @@ from utils.db_api.models import ordersProcessingModel, paymentModel
 from utils import function
 
 
-@dp.message_handler(user_id=config.ADMINS, commands=["orderspr"])
+@dp.message_handler(Text(equals=["Заказы на рассмотрении"]), user_id=config.ADMINS)
 async def show_orders(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
@@ -34,7 +34,7 @@ async def show_orders(message: types.Message):
         mes = config.adminMessage["ordersPR_main"].format(text=text)
     else:
         mes = config.adminMessage["orders_missing"]
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["infopr"])
@@ -55,7 +55,7 @@ async def show_info_order(message: types.Message):
         elif len(order["document"]) > 1:
             for document in order["document"]:
                 await message.answer_document(document=document)
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["sendr"])
@@ -69,7 +69,7 @@ async def send_order(message: types.Message, state: FSMContext):
         await state.update_data(orderID=order["data"]["id"])
         await AdminPriceOrder.price.set()
         mes = config.adminMessage["price_send"]
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["closer"])
@@ -80,7 +80,7 @@ async def close_order(message: types.Message, state: FSMContext):
         mes = config.adminMessage["order_close_text"]
         await state.update_data(orderID=order["data"]["id"])
         await AdminCloseOrderPr.message.set()
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(state=AdminCloseOrderPr.message, user_id=config.ADMINS)

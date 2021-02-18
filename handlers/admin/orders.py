@@ -2,9 +2,9 @@ from datetime import datetime
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.builtin import Text
 
 from data import config
-from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp, bot
@@ -16,7 +16,7 @@ from utils import function
 
 ### Информация о заказах ###
 
-@dp.message_handler(user_id=config.ADMINS, commands=["orders"])
+@dp.message_handler(Text(equals=["Заказы"]), user_id=config.ADMINS)
 async def show_orders(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
@@ -34,7 +34,7 @@ async def show_orders(message: types.Message):
         mes = config.adminMessage["orders_main"].format(text=text)
     else:
         mes = config.adminMessage["orders_missing"]
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["info"])
@@ -55,14 +55,16 @@ async def show_info_order(message: types.Message):
         elif len(order["document"]) > 1:
             for document in order["document"]:
                 await message.answer_document(document=document)
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["orderClose"])
 async def close_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = orderModel.get_order(function.checkID(message.text))
-    if order["code"] == 200:
+    if order["code"] == 200 and not order["data"]["active"]:
+        mes = config.adminMessage["order_completed"]
+    elif order["code"] == 200:
         mes = config.adminMessage["order_confirm"]
         await state.update_data(orderID=order["data"]["id"])
         await AdminCloseOrder.wait.set()
@@ -80,7 +82,7 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
         orderModel.updateActive_order(order["data"]["id"])
         tasksModel.del_task_orderID(order["data"]["id"])
         mes = config.adminMessage["order_close"].format(id=order["data"]["id"])
-        await bot.send_message(chat_id=order["data"]["userID"], text=config.message["order_close"], reply_markup=menu)
+        await bot.send_message(chat_id=order["data"]["userID"], text=config.message["order_close"])
     await state.finish()
     await call.message.edit_text(mes)
 
@@ -104,7 +106,7 @@ async def start_message_send(message: types.Message, state: FSMContext):
         await state.update_data(orderID=order["data"]["id"])
         await AdminMesOrder.message.set()
         mes = config.adminMessage["message_send"]
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, commands=["mesCheck"])
@@ -125,7 +127,7 @@ async def message_check(message: types.Message, state: FSMContext):
     ResponseMes = "<b>Текст</b>:\n{text}\n <b>Документы</b>:\n{doc}\n <b>Изображения</b>:\n {img}".format(text=mes,
                                                                                                           doc=DocMes,
                                                                                                           img=ImgMes)
-    await message.answer(ResponseMes, reply_markup=menu)
+    await message.answer(ResponseMes)
 
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, content_types=types.ContentType.DOCUMENT)
@@ -179,18 +181,18 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     mes = data.get("description") if "description" in keys else ""
     doc = data.get("document") if "document" in keys else []
     img = data.get("img") if "img" in keys else []
-    await bot.send_message(chat_id=chatID, text=config.message["order_complete"], reply_markup=menu)
+    await bot.send_message(chat_id=chatID, text=config.message["order_complete"])
     if len(doc) == 0 and mes != "":
-        await bot.send_message(chat_id=chatID, text=mes, reply_markup=menu)
+        await bot.send_message(chat_id=chatID, text=mes)
     elif len(doc) == 1:
         await bot.send_document(chat_id=chatID, caption=mes, document=doc[0].file_id)
     elif len(doc) > 1:
         for document in doc:
             await bot.send_document(chat_id=chatID, document=document.file_id)
         if mes != "":
-            await bot.send_message(chat_id=chatID, text=mes, reply_markup=menu)
+            await bot.send_message(chat_id=chatID, text=mes)
     for item in img:
-        await bot.send_photo(chat_id=chatID, photo=item[len(item) - 1].file_id, reply_markup=menu)
+        await bot.send_photo(chat_id=chatID, photo=item[len(item) - 1].file_id)
     await state.finish()
     await call.message.edit_text(config.adminMessage["message_yes_send"])
 

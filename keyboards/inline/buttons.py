@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from keyboards.inline.callback_datas import buy_callback, setting_callback, confirmation_callback, type_work_callback
+from keyboards.inline.callback_datas import action_callback, setting_callback, confirmation_callback, type_work_callback, auxiliary_orders_callback
 from data import config
 
 
@@ -27,6 +27,20 @@ def getCustomKeyboard(**kwargs):
     keyboard = InlineKeyboardMarkup()
     for arg, text in kwargs.items():
         keyboard.add(InlineKeyboardButton(text=text, callback_data=confirmation_callback.new(bool=arg)))
+    return keyboard
+
+
+def getActionKeyboard(id, **kwargs):
+    keyboard = InlineKeyboardMarkup()
+    for arg, text in kwargs.items():
+        keyboard.add(InlineKeyboardButton(text=text, callback_data=action_callback.new(what_action=arg, id=id)))
+    return keyboard
+
+
+def getAuxiliaryOrdersKeyboard(action, orders):
+    keyboard = InlineKeyboardMarkup()
+    for text, id in orders.items():
+        keyboard.add(InlineKeyboardButton(text=text, callback_data=auxiliary_orders_callback.new(action=action, id=id)))
     return keyboard
 
 

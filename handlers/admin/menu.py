@@ -1,7 +1,7 @@
 from aiogram import types
 
 from data import config
-from keyboards.default.menu import menu
+from keyboards.default.menu import menu, admin_menu
 from loader import dp
 
 
@@ -10,3 +10,8 @@ from loader import dp
 @dp.message_handler(user_id=config.ADMINS, commands=["Ahelp", "ahelp", "helpA", "helpAdmin", "helpa", "helpadmin"])
 async def show_help(message: types.Message):
     await message.answer(config.adminMessage["help"], reply_markup=menu)
+
+
+@dp.message_handler(user_id=config.ADMINS, commands=["Akeyboard"])
+async def show_help(message: types.Message):
+    await message.answer(config.adminMessage["help"], reply_markup=admin_menu)

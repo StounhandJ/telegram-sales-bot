@@ -1,10 +1,10 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.builtin import Text
 
 from data import config
-from keyboards.default.menu import menu
 from keyboards.inline import buttons
-from keyboards.inline.callback_datas import confirmation_callback
+from keyboards.inline.callback_datas import confirmation_callback, action_callback
 from loader import dp
 from states.admin_create_promoCode import CodeAdd
 from states.admin_edit_promoCode import CodeEdit
@@ -14,7 +14,7 @@ from utils import function
 
 ### Информация о промокодах ###
 
-@dp.message_handler(user_id=config.ADMINS, commands=["codeList"])
+@dp.message_handler(Text(equals=["Промокоды"]), user_id=config.ADMINS)
 async def show_codeList(message: types.Message):
     mes = config.adminMessage["codes_missing"]
     codes = promoCodesModel.get_ALLPromoCode()
@@ -23,11 +23,13 @@ async def show_codeList(message: types.Message):
         num = 1
         for code in codes["data"]:
             discount = str(code["discount"]) + ("%" if code["percent"] else " р.")
-            text += config.adminMessage["code_info"].format(num=num, id=code["id"], name=code["name"],count=code["count"] if code["limitation_use"] else "Бесконечно",
+            text += config.adminMessage["code_info"].format(num=num, id=code["id"], name=code["name"],
+                                                            count=code["count"] if code[
+                                                                "limitation_use"] else "Бесконечно",
                                                             discount=discount)
             num += 1
         mes = config.adminMessage["code_main"].format(text=text)
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 ### Создзание промокода ###
@@ -36,7 +38,7 @@ async def show_codeList(message: types.Message):
 async def start_create_code(message: types.Message, state: FSMContext):
     await CodeAdd.name.set()
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["code_add_name"], reply_markup=menu)
+    await message.answer(config.adminMessage["code_add_name"])
 
 
 @dp.message_handler(state=CodeAdd.name, user_id=config.ADMINS)
@@ -57,7 +59,7 @@ async def create_code_code(message: types.Message, state: FSMContext):
                              reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить создание"))
     else:
         await message.answer("Такой промокод уже существует",
-                            reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
+                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.message_handler(state=CodeAdd.count, user_id=config.ADMINS)
@@ -165,60 +167,49 @@ async def create_code_cancel(call: types.CallbackQuery, state: FSMContext):
 ### Изменение промокода ###
 
 @dp.message_handler(user_id=config.ADMINS, commands=["codeEdit"])
-async def start_edit_code(message: types.Message, state: FSMContext):
-    mes = config.adminMessage["code_missing"]
-    code = promoCodesModel.get_promo_code_id(function.checkID(message.text))
-    if code["code"] == 200:
-        code = code["data"]
-        await state.update_data(codeEditID=code["id"])
-        mes = config.adminMessage["code_edit"].format(name=code["name"],
-                                                      code=code["code"],
-                                                      count=code["count"] if code["limitation_use"] else "Бесконечно",
-                                                      discount=str(code["discount"]) + (
-                                                          "%" if code["percent"] else " р."))
-        await CodeEdit.zero.set()
-    await message.answer(mes, reply_markup=menu)
+async def start_edit_code(message: types.Message):
+    mes, keyboard = menu_edit_promoCode(function.checkID(message.text))
+    await message.answer(mes, reply_markup=keyboard)
 
 
-@dp.message_handler(state=CodeEdit.zero, user_id=config.ADMINS, commands=["name"])
-async def edit_code_name_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="promoCode_name"), user_id=config.ADMINS)
+async def edit_code_name_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await CodeEdit.name.set()
+    await state.update_data(codeEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["code_add_name"])
+    await call.message.edit_text(config.adminMessage["code_add_name"], reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
 
 
-@dp.message_handler(state=CodeEdit.zero, user_id=config.ADMINS, commands=["code"])
-async def edit_code_code_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="promoCode_code"), user_id=config.ADMINS)
+async def edit_code_code_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await CodeEdit.code.set()
+    await state.update_data(codeEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["code_add_code"])
+    await call.message.edit_text(config.adminMessage["code_add_code"], reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
 
 
-@dp.message_handler(state=CodeEdit.zero, user_id=config.ADMINS, commands=["discount"])
-async def edit_code_discount_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="promoCode_discount"), user_id=config.ADMINS)
+async def edit_code_discount_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await CodeEdit.discount.set()
+    await state.update_data(codeEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["code_add_discount"])
+    await call.message.edit_text(config.adminMessage["code_add_discount"], reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
 
 
-@dp.message_handler(state=CodeEdit.zero, user_id=config.ADMINS, commands=["count"])
-async def edit_code_discount_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="promoCode_count"), user_id=config.ADMINS)
+async def edit_code_discount_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await CodeEdit.count.set()
+    await state.update_data(codeEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer("Укажите новое количество промокодов:")
+    await call.message.edit_text("Укажите новое количество промокодов:", reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
 
 
-@dp.message_handler(state=CodeEdit.zero, user_id=config.ADMINS, commands=["delete"])
-async def edit_code_delete_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="promoCode_delete"), user_id=config.ADMINS)
+async def edit_code_delete_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await CodeEdit.delete.set()
+    await state.update_data(codeEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer("Удалить промокод", reply_markup=buttons.getConfirmationKeyboard())
-
-
-@dp.message_handler(state=CodeEdit.zero, user_id=config.ADMINS, commands=["back"])
-async def edit_code_back(message: types.Message, state: FSMContext):
-    await state.finish()
-    await message.answer(config.adminMessage["code_edit_back"])
+    await call.message.edit_text("Удалить промокод", reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=CodeEdit.name, user_id=config.ADMINS)
@@ -265,8 +256,8 @@ async def edit_code_discount(message: types.Message, state: FSMContext):
 async def edit_code_name(message: types.Message, state: FSMContext):
     if message.text.isdigit() and 0 < int(message.text) < 9999999:
         await state.update_data(count=message.text)
-        await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                             reply_markup=buttons.getConfirmationKeyboard())
+        await message.answer(text=message.text + "\n" + config.adminMessage["code_add_confirmation"],
+                                reply_markup=buttons.getConfirmationKeyboard())
     else:
         await message.answer("Вы указали неправильное число")
 
@@ -294,25 +285,36 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
         code["discount"] = data.get("discount")
     elif "CodeEdit:count" == state_active:
         code["count"] = data.get("count")
-    promoCodesModel.update_promo_code(code["id"], code["name"], code["code"], code["percent"], code["discount"], code["count"])
-    await CodeEdit.zero.set()
-    await function.set_state_active(state)
-    await call.message.edit_text(config.adminMessage["code_edit"].format(name=code["name"],
-                                                                         code=code["code"],
-                                                                         count=code["count"] if code[
-                                                                             "limitation_use"] else "Бесконечно",
-                                                                         discount=str(code["discount"]) + (
-                                                                             "%" if code["percent"] else " р.")))
+    promoCodesModel.update_promo_code(code["id"], code["name"], code["code"], code["percent"], code["discount"],
+                                      code["count"])
+    mes, keyboard = menu_edit_promoCode(data.get("codeEditID"))
+    await state.finish()
+    await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=CodeEdit)
 async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    state_active = data.get("state_active")
-    mes = config.adminMessage["code_add_repeat"]
-    if "CodeEdit:delete" == state_active:
-        mes = config.adminMessage["code_del_no"]
-    await CodeEdit.zero.set()
-    await function.set_state_active(state)
-    await call.message.edit_text(mes)
+    mes, keyboard = menu_edit_promoCode(data.get("codeEditID"))
+    await state.finish()
+    await call.message.edit_text(mes,reply_markup=keyboard)
 
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=CodeEdit)
+async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    mes, keyboard = menu_edit_promoCode(data.get("codeEditID"))
+    await state.finish()
+    await call.message.edit_text(mes,reply_markup=keyboard)
+
+
+def menu_edit_promoCode(codeEditID):
+    code = promoCodesModel.get_promo_code_id(codeEditID)
+    if code["code"] == 200:
+        code = code["data"]
+        return [config.adminMessage["code_edit"].format(name=code["name"], code=code["code"], count=code["count"] if code["limitation_use"] else "Бесконечно",
+                                                                             discount=str(code["discount"]) + (
+                                                                                 "%" if code["percent"] else " р.")),
+                buttons.getActionKeyboard(code["id"], promoCode_name="Имя", promoCode_code="Промокод", promoCode_discount="Скидка", promoCode_count="Количество", promoCode_delete="Удалить")]
+    else:
+        return [config.adminMessage["code_missing"], None]

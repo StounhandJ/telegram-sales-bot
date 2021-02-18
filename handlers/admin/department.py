@@ -1,10 +1,10 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.builtin import Text
 
 from data import config
-from keyboards.default.menu import menu
 from keyboards.inline import buttons
-from keyboards.inline.callback_datas import confirmation_callback
+from keyboards.inline.callback_datas import confirmation_callback, action_callback
 from loader import dp, bot
 from states.admin_create_department import DepartmentAdd
 from states.admin_edit_department import DepartmentEdit
@@ -14,7 +14,7 @@ from utils import function
 
 ### Информация о заказах ###
 
-@dp.message_handler(user_id=config.ADMINS, commands=["departments"])
+@dp.message_handler(Text(equals=["Отделы"]), user_id=config.ADMINS)
 async def show_orders(message: types.Message):
     departments = departmentModel.get_all_departments()
     if departments["code"] == 200:
@@ -27,7 +27,7 @@ async def show_orders(message: types.Message):
         mes = config.adminMessage["departments_main"].format(text=text)
     else:
         mes = config.adminMessage["departments_missing"]
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["dinfo", "infod"])
@@ -43,7 +43,7 @@ async def show_info_order(message: types.Message):
         mes = config.adminMessage["department_detailed_info"].format(name=department["name"],
                                                                      tag=department["tag"],
                                                                      count_staff=count_staff)
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 ### Создзание промокода ###
@@ -52,7 +52,7 @@ async def show_info_order(message: types.Message):
 async def start_create_code(message: types.Message, state: FSMContext):
     await DepartmentAdd.name.set()
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["department_add_name"], reply_markup=menu)
+    await message.answer(config.adminMessage["department_add_name"])
 
 
 @dp.message_handler(state=DepartmentAdd.name, user_id=config.ADMINS)
@@ -119,59 +119,52 @@ async def create_code_cancel(call: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(user_id=config.ADMINS, commands=["departmentEdit"])
 async def start_edit_code(message: types.Message, state: FSMContext):
-    mes = config.adminMessage["department_missing"]
-    department = departmentModel.get_department(function.check_first_tag(message.text))
-    if department["code"] == 200:
-        await state.update_data(departmentEditID=department["data"]["id"])
-        mes = config.adminMessage["department_edit"].format(name=department["data"]["name"],
-                                                            tag=department["data"]["tag"])
-        await DepartmentEdit.zero.set()
-    await message.answer(mes, reply_markup=menu)
+    mes, keyboard = menu_edit_department(-1, tag=function.check_first_tag(message.text))
+    await message.answer(mes, reply_markup=keyboard)
 
 
-@dp.message_handler(state=DepartmentEdit.zero, user_id=config.ADMINS, commands=["name"])
-async def edit_code_name_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="department_name"), user_id=config.ADMINS)
+async def edit_code_name_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await DepartmentEdit.name.set()
+    await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["department_add_name"],
-                         reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+    await call.message.edit_text(config.adminMessage["department_add_name"],
+                                 reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
 
 
-@dp.message_handler(state=DepartmentEdit.zero, user_id=config.ADMINS, commands=["tag"])
-async def edit_code_code_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="department_tag"), user_id=config.ADMINS)
+async def edit_code_code_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await DepartmentEdit.tag.set()
+    await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["department_add_tag"],
-                         reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+    await call.message.edit_text(config.adminMessage["department_add_tag"],
+                                 reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
 
 
-@dp.message_handler(state=DepartmentEdit.zero, user_id=config.ADMINS, commands=["add_user"])
-async def edit_code_code_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="department_add_user"), user_id=config.ADMINS)
+async def edit_code_code_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await DepartmentEdit.add_user.set()
+    await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["department_add_user"],
-                         reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+    await call.message.edit_text(config.adminMessage["department_add_user"],
+                                 reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
 
 
-@dp.message_handler(state=DepartmentEdit.zero, user_id=config.ADMINS, commands=["del_user"])
-async def edit_code_code_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="department_del_user"), user_id=config.ADMINS)
+async def edit_code_code_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await DepartmentEdit.del_user.set()
+    await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["department_del_user"],
-                         reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+    await call.message.edit_text(config.adminMessage["department_del_user"],
+                                 reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
 
 
-@dp.message_handler(state=DepartmentEdit.zero, user_id=config.ADMINS, commands=["delete"])
-async def edit_code_delete_start(message: types.Message, state: FSMContext):
+@dp.callback_query_handler(action_callback.filter(what_action="department_delete"), user_id=config.ADMINS)
+async def edit_code_delete_start(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await DepartmentEdit.delete.set()
+    await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await message.answer("Удалить отдел?", reply_markup=buttons.getConfirmationKeyboard())
-
-
-@dp.message_handler(state=DepartmentEdit.zero, user_id=config.ADMINS, commands=["back"])
-async def edit_code_back(message: types.Message, state: FSMContext):
-    await state.finish()
-    await message.answer(config.adminMessage["department_edit_back"])
+    await call.message.edit_text("Удалить отдел?", reply_markup=buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=DepartmentEdit.add_user, user_id=config.ADMINS)
@@ -248,30 +241,39 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
         departmentModel.add_staff(department["id"], data.get("add_user"))
     elif "DepartmentEdit:del_user" == state_active:
         departmentModel.del_staff(department["id"], data.get("del_user"))
-    await DepartmentEdit.zero.set()
-    await function.set_state_active(state)
-    await call.message.edit_text(config.adminMessage["department_edit"].format(name=department["name"],
-                                                                               tag=department["tag"]))
+
+    mes, keyboard = menu_edit_department(data.get("departmentEditID"))
+    await state.finish()
+    await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=DepartmentEdit)
 async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    state_active = data.get("state_active")
-    if "DepartmentEdit:delete" == state_active:
-        await call.message.edit_text(config.adminMessage["department_del_no"])
-        await DepartmentEdit.zero.set()
-        return
-    elif "DepartmentEdit:name" == state_active:
-        await DepartmentEdit.name.set()
-    elif "DepartmentEdit:tag" == state_active:
-        await DepartmentEdit.tag.set()
-    await function.set_state_active(state)
-    await call.message.edit_text(config.adminMessage["code_add_repeat"],
-                                 reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+    mes, keyboard = menu_edit_department(data.get("departmentEditID"))
+    await state.finish()
+    await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=DepartmentEdit)
-async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery):
-    await DepartmentEdit.zero.set()
-    await call.message.edit_text(config.adminMessage["department_edit_no"])
+async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    mes, keyboard = menu_edit_department(data.get("departmentEditID"))
+    await state.finish()
+    await call.message.edit_text(text=mes, reply_markup=keyboard)
+
+
+def menu_edit_department(departmentID, tag=None):
+    if not tag is None:
+        department = departmentModel.get_department(tag)
+    else:
+        department = departmentModel.get_department_id(departmentID)
+    if department["code"] == 200:
+        department = department["data"]
+        return [config.adminMessage["department_edit"].format(name=department["name"],
+                                                              tag=department["tag"]),
+                buttons.getActionKeyboard(department["id"], department_name="Название", department_tag="Тэг",
+                                          department_add_user="Добавить сотрудника",
+                                          department_del_user="Удалить сотрудника", department_delete="Удалить отдел")]
+    else:
+        return [config.adminMessage["department_missing"], None]
