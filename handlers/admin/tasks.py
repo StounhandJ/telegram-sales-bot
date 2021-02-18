@@ -24,7 +24,7 @@ async def start_edit_code(message: types.Message, state: FSMContext):
             except:
                 pass
     orderID = function.check_number(message.text)
-    text = function.check_text(message.text)
+    text = function.string_handler(function.check_text(message.text))
     if orderID is None or orderModel.get_order(orderID)["code"] != 200:
         await message.answer("Вы не указали номер заказа или указали на несуществующий заказ", reply_markup=menu)
         return
@@ -39,7 +39,7 @@ async def start_edit_code(message: types.Message, state: FSMContext):
     await message.answer(mes, reply_markup=menu)
 
 
-@dp.message_handler(user_id=config.ADMINS, commands=["task_list_a"])
+@dp.message_handler(user_id=config.ADMINS, commands=["task_list"])
 async def close_order(message: types.Message, state: FSMContext):
     tasks = tasksModel.get_all_tasks()
     mes_start = "Задачи не установлены"

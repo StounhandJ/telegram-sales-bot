@@ -76,7 +76,9 @@ async def send_order(message: types.Message, state: FSMContext):
 async def close_order(message: types.Message, state: FSMContext):
     mes = config.adminMessage["order_missing"]
     order = ordersProcessingModel.get_order_provisional(function.checkID(message.text))
-    if order["code"] == 200:
+    if order["code"] == 200 and not order["data"]["active"]:
+        mes = config.adminMessage["order_completed"]
+    elif order["code"] == 200:
         mes = config.adminMessage["order_close_text"]
         await state.update_data(orderID=order["data"]["id"])
         await AdminCloseOrderPr.message.set()
@@ -85,6 +87,7 @@ async def close_order(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=AdminCloseOrderPr.message, user_id=config.ADMINS)
 async def close_order_text(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     await state.update_data(text=message.text)
     await AdminCloseOrderPr.wait.set()
     await message.answer(config.adminMessage["order_close_confirm"], reply_markup=buttons.getConfirmationKeyboard())

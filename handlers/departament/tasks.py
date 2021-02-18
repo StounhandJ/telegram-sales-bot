@@ -63,6 +63,7 @@ async def close_order(call: types.CallbackQuery, state: FSMContext, callback_dat
 
 @dp.message_handler(state=TaskComplete.description)
 async def adding_comment(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     await state.update_data(description=message.text)
     await TaskComplete.wait.set()
     await message.answer(config.message["comment_confirmation"].format(text=message.text),

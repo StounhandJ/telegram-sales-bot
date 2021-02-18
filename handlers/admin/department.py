@@ -57,6 +57,7 @@ async def start_create_code(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=DepartmentAdd.name, user_id=config.ADMINS)
 async def create_code_name(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     await state.update_data(name=message.text)
     await DepartmentAdd.wait.set()
     await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
@@ -65,13 +66,16 @@ async def create_code_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=DepartmentAdd.tag, user_id=config.ADMINS)
 async def create_code_code(message: types.Message, state: FSMContext):
-    if not "@" in message.text and not "." in message.text and not "\"" in message.text:
+    message.text = function.string_handler(message.text)
+    departments = departmentModel.get_all_departments()
+    if (not "@" in message.text and not "." in message.text and not "\"" in message.text) and not (
+            departments["code"] == 200 and message.text in [department["tag"] for department in departments["data"]]):
         await state.update_data(tag=message.text)
         await DepartmentAdd.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                              reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить создание"))
     else:
-        await message.answer("Недопустимые символы (@ . \")",
+        await message.answer("Недопустимые символы (@ . \") или отдел с таким тэгом уже существует",
                              reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
@@ -201,6 +205,7 @@ async def edit_code_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=DepartmentEdit.name, user_id=config.ADMINS)
 async def edit_code_name(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     await state.update_data(name=message.text)
     await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                          reply_markup=buttons.getConfirmationKeyboard())
@@ -208,13 +213,16 @@ async def edit_code_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=DepartmentEdit.tag, user_id=config.ADMINS)
 async def edit_code_code(message: types.Message, state: FSMContext):
-    if not "@" in message.text and not "." in message.text and not "\"" in message.text:
+    message.text = function.string_handler(message.text)
+    departments = departmentModel.get_all_departments()
+    if (not "@" in message.text and not "." in message.text and not "\"" in message.text) and not (
+            departments["code"] == 200 and message.text in [department["tag"] for department in departments["data"]]):
         await state.update_data(tag=message.text)
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                              reply_markup=buttons.getConfirmationKeyboard())
     else:
-        await message.answer("Недопустимые символы (@ . \")",
-                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
+        await message.answer("Недопустимые символы (@ . \") или отдел с таким тэгом уже существует",
+                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=DepartmentEdit)

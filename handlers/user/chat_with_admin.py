@@ -35,6 +35,7 @@ async def start_write_administration(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=UserMes.message)
 async def adding_comment(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     await state.update_data(message=message.text)
     await UserMes.wait.set()
     await message.answer(config.message["comment_confirmation"].format(text=message.text),

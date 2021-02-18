@@ -89,6 +89,7 @@ async def start_message_send(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=AdminMesUser.message, user_id=config.ADMINS)
 async def adding_message(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     data = await state.get_data()
     mes = data.get("message") if "message" in data.keys() else ""
     await state.update_data(message=(mes + message.text + "\n"))

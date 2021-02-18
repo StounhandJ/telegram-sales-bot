@@ -3,6 +3,10 @@ async def set_state_active(state):
         data["state_active"] = await state.get_state()
 
 
+def string_handler(text: str):
+    return text.replace("&", "&amp;").replace("<","&lt;").replace(">","&gt;")
+
+
 def checkID(mes):
     try:
         return int(mes.split(' ')[1])

@@ -43,6 +43,7 @@ async def start_create_code(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=CodeAdd.name, user_id=config.ADMINS)
 async def create_code_name(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     await state.update_data(name=message.text)
     await CodeAdd.wait.set()
     await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
@@ -51,6 +52,7 @@ async def create_code_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=CodeAdd.code, user_id=config.ADMINS)
 async def create_code_code(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     promoCodes = promoCodesModel.get_ALLPromoCode()
     if not (promoCodes["code"] == 200 and message.text in [promo["code"] for promo in promoCodes["data"]]):
         await state.update_data(code=message.text)
@@ -214,6 +216,7 @@ async def edit_code_delete_start(call: types.CallbackQuery, state: FSMContext, c
 
 @dp.message_handler(state=CodeEdit.name, user_id=config.ADMINS)
 async def edit_code_name(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     await state.update_data(name=message.text)
     await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                          reply_markup=buttons.getConfirmationKeyboard())
@@ -221,6 +224,7 @@ async def edit_code_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=CodeEdit.code, user_id=config.ADMINS)
 async def edit_code_code(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     promoCodes = promoCodesModel.get_ALLPromoCode()
     if not (promoCodes["code"] == 200 and message.text in [promo["code"] for promo in promoCodes["data"]]):
         await state.update_data(code=message.text)
@@ -244,7 +248,7 @@ async def edit_code_percent(message: types.Message, state: FSMContext):
 async def edit_code_discount(message: types.Message, state: FSMContext):
     data = await state.get_data()
     code = promoCodesModel.get_promo_code_id(data.get("codeEditID"))
-    if code["code"] == 200 and message.text.isdigit() and (code["data"]["percent"] and int(message.text) <= 95):
+    if code["code"] == 200 and message.text.isdigit() and (not data.get("percent") or (data.get("percent") and int(message.text) <= 95)):
         await state.update_data(discount=message.text)
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                              reply_markup=buttons.getConfirmationKeyboard())

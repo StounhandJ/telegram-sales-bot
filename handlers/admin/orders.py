@@ -160,6 +160,7 @@ async def message_add_img(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS)
 async def message_add_mes(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     data = await state.get_data()
     mes = data.get("description") if "description" in data.keys() else ""
     await state.update_data(description=(mes + message.text + "\n"))

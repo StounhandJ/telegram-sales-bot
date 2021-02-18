@@ -47,6 +47,7 @@ async def start_buy_product(call: types.CallbackQuery, callback_data: dict, stat
 
 @dp.message_handler(state=SellInfo.description)
 async def adding_comment(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     await state.update_data(description=message.text)
     await SellInfo.wait.set()
     await message.answer(config.message["comment_confirmation"].format(text=message.text),
@@ -74,6 +75,7 @@ async def message_add_doc(message: types.Message):
 
 @dp.message_handler(state=SellInfo.promoCode)
 async def adding_promoCode(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
     code = promoCodesModel.get_promo_code(message.text)
     if code["code"] == 200:
         code = code["data"]
