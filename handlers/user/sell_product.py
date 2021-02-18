@@ -6,27 +6,24 @@ from keyboards.inline import buttons
 from keyboards.inline.callback_datas import setting_callback, confirmation_callback, type_work_callback
 from loader import dp
 from states.user_sell_info import SellInfo
-from utils.db_api.models import ordersProcessingModel, promoCodesModel
+from utils.db_api.models import ordersProcessingModel, promoCodesModel, banListModel
 from utils.notify_admins import notify_admins_message
 from utils import function
 
 
 @dp.callback_query_handler(type_work_callback.filter(work="other_works"))
 async def diploma_info(call: types.CallbackQuery):
-    await call.answer(cache_time=2)
     await call.message.edit_text(text="Другие работы",
                                  reply_markup=buttons.getOtherWorks())
 
 
 @dp.callback_query_handler(type_work_callback.filter(work="back"))
 async def diploma_info(call: types.CallbackQuery):
-    await call.answer(cache_time=2)
     await call.message.edit_text(text=config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
 
 
 @dp.callback_query_handler(type_work_callback.filter())
 async def diploma_info(call: types.CallbackQuery, callback_data: dict):
-    await call.answer(cache_time=2)
     await call.message.edit_text(text=config.works[callback_data["work"]]["description"],
                                  reply_markup=buttons.getSellWorkKeyboard(callback_data["work"]))
 
@@ -38,10 +35,14 @@ async def product_info_exit(call: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(setting_callback.filter(command="continue"))
 async def start_buy_product(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    if banListModel.get_ban_user(call.from_user.id)["code"] == 200:
+        await call.message.edit_text("Вы забанены")
+        return
+
     await state.update_data(type_work=callback_data["type"])
     await SellInfo.description.set()
     await function.set_state_active(state)
-    await call.message.edit_text(config.works[callback_data["type"]]["template"],reply_markup=buttons.getCustomKeyboard(cancel="Отменить заказ"))
+    await call.message.edit_text(config.works[callback_data["type"]]["template"], reply_markup=buttons.getCustomKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.description)

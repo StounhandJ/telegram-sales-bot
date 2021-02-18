@@ -1,3 +1,5 @@
+import time
+
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.builtin import Text
@@ -7,23 +9,28 @@ from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp
 from states.user_mes import UserMes
-from utils.db_api.models import orderModel, messagesModel
+from utils.db_api.models import orderModel, messagesModel, banListModel
 from utils.notify_admins import notify_admins_message
 from utils import function
 
 
 @dp.message_handler(Text(equals=["Написать администрации"]))
 async def start_write_administration(message: types.Message, state: FSMContext):
-    await UserMes.message.set()
-    await function.set_state_active(state)
-    await message.answer("Напишите свое сообщение:")
+    if banListModel.get_ban_user(message.from_user.id)["code"] == 200:
+        await message.answer("Вы забанены")
+        return
 
-
-@dp.message_handler(commands=["mesa", "ames", "Ames", "mesA"])
-async def start_write_administration(message: types.Message, state: FSMContext):
-    await UserMes.message.set()
-    await function.set_state_active(state)
-    await message.answer("Напишите свое сообщение:")
+    lastMessage = messagesModel.get_last_message_day_user(message.from_user.id)
+    if lastMessage["code"] == 200 and len(lastMessage["data"]) >= 20:
+        mes = "Вы привысили количество обращений в день"
+    elif lastMessage["code"] == 200 and lastMessage["data"][len(lastMessage["data"]) - 1]["date"] > time.time() - 60 * 30:
+        mes = "Вы недавно отпраили сообщение.\nПовторное можно будет отправить через <b>{date}</b> минут".format(
+            date=int((lastMessage["data"][len(lastMessage["data"]) - 1]["date"]-(time.time() - 60 * 30))/60))
+    else:
+        await UserMes.message.set()
+        await function.set_state_active(state)
+        mes = "Напишите свое сообщение:"
+    await message.answer(mes)
 
 
 @dp.message_handler(state=UserMes.message)

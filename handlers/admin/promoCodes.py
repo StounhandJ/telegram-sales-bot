@@ -86,7 +86,7 @@ async def create_code_percent(call: types.CallbackQuery, state: FSMContext, call
 @dp.message_handler(state=CodeAdd.discount, user_id=config.ADMINS)
 async def create_code_discount(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    if message.text.isdigit() and (data.get("percent") and int(message.text) <= 95):
+    if message.text.isdigit() and (not data.get("percent") or (data.get("percent") and int(message.text) <= 95)):
         await state.update_data(discount=message.text)
         await CodeAdd.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],

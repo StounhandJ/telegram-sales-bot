@@ -8,6 +8,12 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 
+CREATE TABLE `ban_list` (
+  `id` int(11) NOT NULL,
+  `userID` int(11) NOT NULL,
+  `date` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `department` (
   `id` int(11) NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -91,6 +97,10 @@ CREATE TABLE `tasks_completes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+ALTER TABLE `ban_list`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userID` (`userID`);
+
 ALTER TABLE `department`
   ADD PRIMARY KEY (`id`);
 
@@ -118,6 +128,9 @@ ALTER TABLE `tasks`
 ALTER TABLE `tasks_completes`
   ADD PRIMARY KEY (`id`);
 
+
+ALTER TABLE `ban_list`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `department`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
