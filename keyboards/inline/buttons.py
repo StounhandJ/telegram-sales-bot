@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from keyboards.inline.callback_datas import action_callback, setting_callback, confirmation_callback, type_work_callback, auxiliary_orders_callback
+from keyboards.inline.callback_datas import action_callback, setting_callback, confirmation_callback, type_work_callback
 from data import config
 
 
@@ -38,9 +38,13 @@ def getActionKeyboard(id, **kwargs):
 
 
 def getAuxiliaryOrdersKeyboard(action, orders):
+    """
+    orders = {"id": orderID,
+              "text": Текст кнопки}
+    """
     keyboard = InlineKeyboardMarkup()
     for text, id in orders.items():
-        keyboard.add(InlineKeyboardButton(text=text, callback_data=auxiliary_orders_callback.new(action=action, id=id)))
+        keyboard.add(InlineKeyboardButton(text=text, callback_data=action_callback.new(what_action=action, id=id)))
     return keyboard
 
 

@@ -13,7 +13,7 @@ from utils.db_api.models import messagesModel
 from utils import function
 
 
-@dp.message_handler(Text(equals=["Сообщения от заказчиков"]), user_id=config.ADMINS)
+@dp.message_handler(Text(equals=["Сообщения от заказчиков", "/mesOrder"]), user_id=config.ADMINS)
 async def order_messages(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
@@ -33,7 +33,7 @@ async def order_messages(message: types.Message):
     await message.answer(mes)
 
 
-@dp.message_handler(Text(equals=["Сообщения от пользователей"]), user_id=config.ADMINS)
+@dp.message_handler(Text(equals=["Сообщения от пользователей", "/mesUser"]), user_id=config.ADMINS)
 async def all_messages(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]

@@ -2,7 +2,6 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 
 from data import config
-from keyboards.default.menu import menu
 from loader import dp, bot
 from utils.db_api.models import departmentModel, tasksModel, tasksCompletesModel, orderModel
 from utils import function
@@ -26,17 +25,17 @@ async def start_edit_code(message: types.Message, state: FSMContext):
     orderID = function.check_number(message.text)
     text = function.string_handler(function.check_text(message.text))
     if orderID is None or orderModel.get_order(orderID)["code"] != 200:
-        await message.answer("Вы не указали номер заказа или указали на несуществующий заказ", reply_markup=menu)
+        await message.answer("Вы не указали номер заказа или указали на несуществующий заказ")
         return
     elif not staff:
-        await message.answer("Вы неверно указали сотрудников", reply_markup=menu)
+        await message.answer("Вы неверно указали сотрудников")
         return
 
     for userID in staff:
         tasksModel.del_task_duplicate(userID, orderID)
         tasksCompletesModel.del_task_duplicate(userID, orderID)
     tasksModel.create_task(orderID, staff, text)
-    await message.answer(mes, reply_markup=menu)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["task_list"])

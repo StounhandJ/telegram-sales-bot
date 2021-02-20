@@ -5,7 +5,7 @@ from aiogram.dispatcher import FSMContext
 
 from data import config
 from keyboards.inline import buttons
-from keyboards.inline.callback_datas import confirmation_callback, auxiliary_orders_callback, action_callback
+from keyboards.inline.callback_datas import confirmation_callback, action_callback
 from loader import dp
 from states.staff_task_complete import TaskComplete
 from utils.db_api.models import departmentModel, tasksModel, tasksCompletesModel, orderModel
@@ -20,29 +20,31 @@ async def close_order(message: types.Message):
         await message.answer(text=mes, reply_markup=keyboard)
 
 
-@dp.callback_query_handler(auxiliary_orders_callback.filter(action="departmentTaskOrder"))
+@dp.callback_query_handler(action_callback.filter(what_action="departmentTaskOrder"))
 async def close_order(call: types.CallbackQuery, callback_data: dict):
     staffs = departmentModel.get_all_staffs()
     if call.from_user.id in staffs:
         mes = config.adminMessage["order_missing"]
         keyboard = None
         order = orderModel.get_order(callback_data.get("id"))
-        await call.message.delete()
         if order["code"] == 200 and check_tasks(call.from_user.id, order["data"]["id"]):
             order = order["data"]
-            keyboard = buttons.getActionKeyboard(order["id"], departmentTaskSend="Сдать работу", departmentTaskCancel="Назад")
+            keyboard = buttons.getActionKeyboard(order["id"], departmentTaskSend="Сдать работу",
+                                                 departmentTaskCancel="Назад")
             form = "Номер заказа <b>{orderID}</b>\nКоментарий к заказу: {description}\n"
             mes = form.format(orderID=order["id"], price=order["price"],
                               description=order["description"],
                               date=datetime.utcfromtimestamp(
                                   order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
             if len(order["document"]) == 1:
+                await call.message.delete()
                 await call.message.answer_document(caption=mes, document=order["document"][0], reply_markup=keyboard)
                 return
             elif len(order["document"]) > 1:
+                await call.message.delete()
                 for document in order["document"]:
                     await call.message.answer_document(document=document)
-        await call.message.answer(mes, reply_markup=keyboard)
+        await call.message.edit_text(mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(action_callback.filter(what_action="departmentTaskSend"))
@@ -58,7 +60,12 @@ async def close_order(call: types.CallbackQuery, state: FSMContext, callback_dat
             await state.update_data(orderID=order["data"]["id"])
             await TaskComplete.description.set()
             await function.set_state_active(state)
-        await call.message.edit_text(mes, reply_markup=keyboard)
+
+        if call.message.document is None:
+            await call.message.edit_text(text=mes, reply_markup=keyboard)
+        else:
+            await call.message.delete()
+            await call.message.answer(text=mes, reply_markup=keyboard)
 
 
 @dp.message_handler(state=TaskComplete.description)
@@ -138,7 +145,11 @@ async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: F
 @dp.callback_query_handler(action_callback.filter(what_action="departmentTaskCancel"))
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
     mes, keyboard = menu_edit_promoCode(call.from_user.id)
-    await call.message.edit_text(text=mes, reply_markup=keyboard)
+    if call.message.document is None:
+        await call.message.edit_text(text=mes, reply_markup=keyboard)
+    else:
+        await call.message.delete()
+        await call.message.answer(text=mes, reply_markup=keyboard)
 
 
 def check_tasks(staffID, orderID):

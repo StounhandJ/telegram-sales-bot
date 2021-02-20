@@ -14,7 +14,7 @@ from utils import function
 
 ### Информация о заказах ###
 
-@dp.message_handler(Text(equals=["Отделы"]), user_id=config.ADMINS)
+@dp.message_handler(Text(equals=["Отделы", "/departments"]), user_id=config.ADMINS)
 async def show_orders(message: types.Message):
     departments = departmentModel.get_all_departments()
     if departments["code"] == 200:

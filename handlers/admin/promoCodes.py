@@ -14,7 +14,7 @@ from utils import function
 
 ### Информация о промокодах ###
 
-@dp.message_handler(Text(equals=["Промокоды"]), user_id=config.ADMINS)
+@dp.message_handler(Text(equals=["Промокоды", "/codes"]), user_id=config.ADMINS)
 async def show_codeList(message: types.Message):
     mes = config.adminMessage["codes_missing"]
     codes = promoCodesModel.get_ALLPromoCode()

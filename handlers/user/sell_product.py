@@ -42,7 +42,8 @@ async def start_buy_product(call: types.CallbackQuery, callback_data: dict, stat
     await state.update_data(type_work=callback_data["type"])
     await SellInfo.description.set()
     await function.set_state_active(state)
-    await call.message.edit_text(config.works[callback_data["type"]]["template"], reply_markup=buttons.getCustomKeyboard(cancel="Отменить заказ"))
+    await call.message.edit_text(config.works[callback_data["type"]]["template"],
+                                 reply_markup=buttons.getCustomKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.description)
@@ -65,7 +66,7 @@ async def message_add_doc(message: types.Message, state: FSMContext):
     await SellInfo.wait.set()
     await message.answer(config.message["document_confirmation"].format(
         text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
-                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+        reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.document, content_types=types.ContentType.PHOTO)
@@ -77,10 +78,13 @@ async def message_add_doc(message: types.Message):
 async def adding_promoCode(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
     code = promoCodesModel.get_promo_code(message.text)
-    if code["code"] == 200:
+    if code["code"] == 200 and code["data"]["limitation_use"] and code["data"]["count"] <= 0:
+        await message.answer("Данный промокод закончился")
+    elif code["code"] == 200:
         code = code["data"]
-        await state.update_data(percent=code["percent"])
-        await state.update_data(discount=code["discount"])
+        await state.update_data(percent=code["percent"],
+                                discount=code["discount"],
+                                promoCode=code["code"])
         await SellInfo.wait.set()
         await message.answer(config.message["promoCode_confirmation"].format(name=code["name"],
                                                                              discount=str(code["discount"]) + (
@@ -104,7 +108,7 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
         await function.set_state_active(state)
         mes = config.message["comment_promoCodeCheck"]
         keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
-    await call.message.edit_text(text=mes,reply_markup=keyboard)
+    await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=SellInfo)
@@ -173,7 +177,10 @@ async def create_order(call, state):
     document = [data.get("document").file_id] if "document" in data.keys() else []
     percent = data.get("percent") if "percent" in data.keys() else False
     discount = data.get("discount") if "discount" in data.keys() else 0
-    ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document, percent, discount)
+    promoCode = data.get("promoCode") if "promoCode" in data.keys() else ""
+    ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document, percent,
+                                                   discount)
+    promoCodesModel.promo_code_used(promoCode)
     await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])
     await state.finish()
     mes = "Ваша заявка принята"

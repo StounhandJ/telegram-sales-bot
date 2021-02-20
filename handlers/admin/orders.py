@@ -6,7 +6,7 @@ from aiogram.dispatcher.filters.builtin import Text
 
 from data import config
 from keyboards.inline import buttons
-from keyboards.inline.callback_datas import confirmation_callback
+from keyboards.inline.callback_datas import confirmation_callback, action_callback
 from loader import dp, bot
 from states.admin_close_order import AdminCloseOrder
 from states.admin_mes_order import AdminMesOrder
@@ -16,7 +16,7 @@ from utils import function
 
 ### Информация о заказах ###
 
-@dp.message_handler(Text(equals=["Заказы"]), user_id=config.ADMINS)
+@dp.message_handler(Text(equals=["Заказы", "/orders"]), user_id=config.ADMINS)
 async def show_orders(message: types.Message):
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
               "Ноябрь", "Декабрь"]
@@ -39,36 +39,18 @@ async def show_orders(message: types.Message):
 
 @dp.message_handler(user_id=config.ADMINS, commands=["info"])
 async def show_info_order(message: types.Message):
-    mes = config.adminMessage["order_missing"]
-    order = orderModel.get_order(function.checkID(message.text))
-    if order["code"] == 200:
-        order = order["data"]
-        mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"],
-                                                                price=order["price"],
-                                                                description=order["description"],
-                                                                date=datetime.utcfromtimestamp(
-                                                                    order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
-        mes += "<b>Заказ выполнен</b>" if not order["active"] else ""
-        if len(order["document"]) == 1:
-            await message.answer_document(caption=mes, document=order["document"][0])
-            return
-        elif len(order["document"]) > 1:
-            for document in order["document"]:
-                await message.answer_document(document=document)
-    await message.answer(mes)
+    await menu_info_order(function.checkID(message.text), message)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["orderClose"])
 async def close_order(message: types.Message, state: FSMContext):
-    mes = config.adminMessage["order_missing"]
-    order = orderModel.get_order(function.checkID(message.text))
-    if order["code"] == 200 and not order["data"]["active"]:
-        mes = config.adminMessage["order_completed"]
-    elif order["code"] == 200:
-        mes = config.adminMessage["order_confirm"]
-        await state.update_data(orderID=order["data"]["id"])
-        await AdminCloseOrder.wait.set()
-    await message.answer(mes, reply_markup=buttons.getConfirmationKeyboard())
+    await menu_close_order(function.checkID(message.text), message, state)
+
+
+@dp.callback_query_handler(action_callback.filter(what_action="OrderClose"), user_id=config.ADMINS)
+async def close_order_button(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+    await menu_close_order(callback_data.get("id"), call.message, state)
+    await call.message.delete()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminCloseOrder.wait)
@@ -89,7 +71,9 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminCloseOrder.wait)
 async def message_send_no(call: types.CallbackQuery, state: FSMContext):
-    await call.message.edit_text(config.adminMessage["order_confirm_no"])
+    data = await state.get_data()
+    await call.message.delete()
+    await menu_info_order(data.get("orderID"), call.message)
     await state.finish()
 
 
@@ -97,16 +81,13 @@ async def message_send_no(call: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(user_id=config.ADMINS, commands=["send"])
 async def start_message_send(message: types.Message, state: FSMContext):
-    mes = config.adminMessage["order_missing"]
-    order = orderModel.get_order(function.checkID(message.text))
-    if order["code"] == 200 and not order["data"]["active"]:
-        mes = config.adminMessage["order_completed"]
-    elif order["code"] == 200:
-        await state.update_data(message_sendID=order["data"]["userID"])
-        await state.update_data(orderID=order["data"]["id"])
-        await AdminMesOrder.message.set()
-        mes = config.adminMessage["message_send"]
-    await message.answer(mes)
+    await menu_send_order(function.checkID(message.text), message, state)
+
+
+@dp.callback_query_handler(action_callback.filter(what_action="OrderSend"), user_id=config.ADMINS)
+async def send_order_button(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+    await menu_send_order(callback_data.get("id"), call.message, state)
+    await call.message.delete()
 
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, commands=["mesCheck"])
@@ -202,3 +183,61 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
 async def message_send_no(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await call.message.edit_text(config.adminMessage["message_not_send"])
+
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=AdminMesOrder)
+async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await call.message.delete()
+    await menu_info_order(data.get("orderID"), call.message)
+    await state.finish()
+
+
+async def menu_send_order(orderID, message, state):
+    mes = config.adminMessage["order_missing"]
+    order = orderModel.get_order(orderID)
+    keyboard = None
+    if order["code"] == 200 and not order["data"]["active"]:
+        mes = config.adminMessage["order_completed"]
+    elif order["code"] == 200:
+        await state.update_data(message_sendID=order["data"]["userID"])
+        await state.update_data(orderID=order["data"]["id"])
+        await AdminMesOrder.message.set()
+        mes = config.adminMessage["message_send"]
+        keyboard = buttons.getCustomKeyboard(cancel="Отмена")
+    await message.answer(text=mes,reply_markup=keyboard)
+
+
+async def menu_close_order(orderID, message, state):
+    mes = config.adminMessage["order_missing"]
+    order = orderModel.get_order(orderID)
+    if order["code"] == 200 and not order["data"]["active"]:
+        mes = config.adminMessage["order_completed"]
+    elif order["code"] == 200:
+        mes = config.adminMessage["order_confirm"]
+        await state.update_data(orderID=order["data"]["id"])
+        await AdminCloseOrder.wait.set()
+    await message.answer(mes, reply_markup=buttons.getConfirmationKeyboard())
+
+
+async def menu_info_order(orderID, message):
+    mes = config.adminMessage["order_missing"]
+    order = orderModel.get_order(orderID)
+    keyboard = None
+    if order["code"] == 200:
+        order = order["data"]
+        mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"],
+                                                                price=order["price"],
+                                                                description=order["description"],
+                                                                date=datetime.utcfromtimestamp(
+                                                                    order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
+        mes += "<b>Заказ выполнен</b>" if not order["active"] else ""
+        keyboard = buttons.getActionKeyboard(order["id"], OrderSend="Отправить ответ",
+                                             OrderClose="Закрыть заказ") if order["active"] else None
+        if len(order["document"]) == 1:
+            await message.answer_document(caption=mes, document=order["document"][0], reply_markup=keyboard)
+            return
+        elif len(order["document"]) > 1:
+            for document in order["document"]:
+                await message.answer_document(document=document)
+    await message.answer(text=mes, reply_markup=keyboard)
