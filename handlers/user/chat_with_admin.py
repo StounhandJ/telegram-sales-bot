@@ -14,7 +14,7 @@ from utils.notify_admins import notify_admins_message
 from utils import function
 
 
-@dp.message_handler(Text(equals=["Написать администрации"]))
+@dp.message_handler(Text(equals=["Написать администрации", "/ames"]))
 async def start_write_administration(message: types.Message, state: FSMContext):
     if banListModel.get_ban_user(message.from_user.id)["code"] == 200:
         await message.answer("Вы забанены")
@@ -63,7 +63,6 @@ async def message_add_doc(message: types.Message):
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="noElement"), state=UserMes)
 async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=2)
     data = await state.get_data()
     mes = ""
     state_active = data.get("state_active")
@@ -76,7 +75,6 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=UserMes)
 async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=2)
     data = await state.get_data()
     state_active = data.get("state_active")
     mes = ""
@@ -100,6 +98,7 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
 async def adding_comment_no(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     state_active = data.get("state_active")
+    keyboard = buttons.getCustomKeyboard(cancel="Отменить")
     if "UserMes:document" == state_active:
         await UserMes.document.set()
     elif "UserMes:documentCheck" == state_active:
@@ -108,7 +107,7 @@ async def adding_comment_no(call: types.CallbackQuery, state: FSMContext):
     elif "UserMes:message" == state_active:
         await UserMes.message.set()
 
-    await call.message.edit_text(config.message["message_no"])
+    await call.message.edit_text(text=config.message["message_no"], reply_markup=keyboard)
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=UserMes)
