@@ -19,15 +19,17 @@ async def order_messages(message: types.Message):
               "Ноябрь", "Декабрь"]
     messages = messagesModel.get_order_messages()
     if messages["code"] == 200:
-        mes = config.adminMessage["messages_main_order"]
+        start = config.adminMessage["messages_main_order"]
+        text = ""
         num = 1
         for item in messages["data"]:
             date = datetime.utcfromtimestamp(item["date"])
             dateMes = "{year} год {day} {month} {min}".format(year=date.year, day=date.day,
                                                               month=months[date.month - 1],
                                                               min=date.strftime("%H:%M"))
-            mes += config.adminMessage["messages_info"].format(num=num, id=item["id"], date=dateMes)
+            text += config.adminMessage["messages_info"].format(num=num, id=item["id"], date=dateMes)
             num += 1
+        mes = config.adminMessage["messages_main"].format(start=start, text=text)
     else:
         mes = config.adminMessage["messages_missing"]
     await message.answer(mes)
@@ -204,7 +206,7 @@ async def menu_info_mes(mesID, message):
     keyboard = None
     if messageInfo["code"] == 200:
         messageInfo = messageInfo["data"]
-        mes = config.adminMessage["message_detailed_info"].format(id=messageInfo["id"], text=messageInfo["message"],
+        mes = config.adminMessage["message_detailed_info"].format(id=messageInfo["id"], userID=messageInfo["userID"], text=messageInfo["message"],
                                                                   date=datetime.utcfromtimestamp(
                                                                       messageInfo["date"]).strftime(
                                                                       '%Y-%m-%d %H:%M:%S'))
