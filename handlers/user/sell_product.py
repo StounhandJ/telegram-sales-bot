@@ -102,7 +102,10 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
     state_active = data.get("state_active")
     keyboard = None
     if "SellInfo:promoCode" == state_active:
-        await create_order(call, state)
+        await SellInfo.separatePayment.set()
+        await function.set_state_active(state)
+        mes = config.message["separatePayment"]
+        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:document" == state_active:
         await SellInfo.promoCodeCheck.set()
         await function.set_state_active(state)
@@ -118,9 +121,14 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
     mes = ""
     state_active = data.get("state_active")
     keyboard = None
-    if "SellInfo:promoCode" == state_active:
+    if "SellInfo:separatePayment" == state_active:
+        await state.update_data(separatePayment=False)
         await create_order(call, state)
         return
+    elif "SellInfo:promoCode" == state_active:
+        await SellInfo.separatePayment.set()
+        mes = config.message["separatePayment"]
+        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:promoCodeCheck" == state_active:
         await SellInfo.promoCode.set()
         mes = config.message["comment_promoCode"]
@@ -160,6 +168,11 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
         mes = config.message["comment_promoCodeCheck"]
         keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:promoCodeCheck" == state_active:
+        await SellInfo.separatePayment.set()
+        mes = config.message["separatePayment"]
+        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+    elif "SellInfo:separatePayment" == state_active:
+        await state.update_data(separatePayment=True)
         await create_order(call, state)
         return
     await function.set_state_active(state)
@@ -178,7 +191,9 @@ async def create_order(call, state):
     percent = data.get("percent") if "percent" in data.keys() else False
     discount = data.get("discount") if "discount" in data.keys() else 0
     promoCode = data.get("promoCode") if "promoCode" in data.keys() else ""
-    ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document, percent,
+    separatePayment = data.get("separatePayment") if "separatePayment" in data.keys() else True
+    ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document,
+                                                   separatePayment, percent,
                                                    discount)
     promoCodesModel.promo_code_used(promoCode)
     await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])

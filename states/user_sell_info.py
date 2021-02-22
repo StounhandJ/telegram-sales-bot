@@ -6,5 +6,6 @@ class SellInfo(StatesGroup):
     documentCheck = State()
     document = State()
     promoCodeCheck = State()
+    separatePayment = State()
     promoCode = State()
     wait = State()

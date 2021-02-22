@@ -1,3 +1,5 @@
+import hashlib
+import time
 from datetime import datetime
 
 from aiogram import types
@@ -10,7 +12,7 @@ from keyboards.inline.callback_datas import confirmation_callback, action_callba
 from loader import dp, bot
 from states.admin_close_order import AdminCloseOrder
 from states.admin_mes_order import AdminMesOrder
-from utils.db_api.models import orderModel, tasksModel
+from utils.db_api.models import orderModel, tasksModel, paymentModel
 from utils import function
 
 
@@ -193,6 +195,42 @@ async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
 
 
+# Повторная оплата #
+
+@dp.callback_query_handler(action_callback.filter(what_action="OrderPaymentTwo"), user_id=config.ADMINS)
+async def send_order_button(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+    mes = config.adminMessage["order_missing"]
+    order = orderModel.get_order(callback_data.get("id"))
+    keyboard = None
+    if order["code"] == 200 and not order["data"]["active"]:
+        mes = config.adminMessage["order_completed"]
+    elif order["code"] == 200:
+        order = order["data"]
+        PRICE = types.LabeledPrice(label="Работа на заказ",
+                                   amount=int(order["price"]/2)*100)
+        secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
+        await bot.send_message(order["userID"],config.payMessage["payment_two"])
+        await bot.send_invoice(
+            chat_id=order["userID"],
+            title=config.payMessage["title"],
+            description=config.payMessage["description"],
+            provider_token=config.PAYMENT_TOKEN,
+            currency=config.currency,
+            is_flexible=False,
+            prices=[PRICE],
+            start_parameter='time-machine-example',
+            payload=secret_key.hexdigest()
+        )
+        orderModel.set_paymentKey_order(order["id"], secret_key.hexdigest())
+        paymentModel.create_payment(call.from_user.id, order["description"], order["document"], order["separate_payment"],
+                                    order["price"]/2,
+                                    secret_key.hexdigest(), True)
+        mes = "Отправленно"
+    await call.message.answer(mes)
+    await menu_info_order(callback_data.get("id"), call.message)
+    await call.message.delete()
+
+
 async def menu_send_order(orderID, message, state):
     mes = config.adminMessage["order_missing"]
     order = orderModel.get_order(orderID)
@@ -226,14 +264,22 @@ async def menu_info_order(orderID, message):
     keyboard = None
     if order["code"] == 200:
         order = order["data"]
+        payment = paymentModel.get_payment(order["payment_key"])
         mes = config.adminMessage["order_detailed_info"].format(orderID=order["id"],
                                                                 price=order["price"],
                                                                 description=order["description"],
+                                                                payment="половина суммы" if order[
+                                                                       "separate_payment"] else "вся сумма",
                                                                 date=datetime.utcfromtimestamp(
                                                                     order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
-        mes += "<b>Заказ выполнен</b>" if not order["active"] else ""
-        keyboard = buttons.getActionKeyboard(order["id"], OrderSend="Отправить ответ",
-                                             OrderClose="Закрыть заказ") if order["active"] else None
+        mes += "" if order["active"] else "<b>Заказ выполнен</b>"
+        mes += "<b>Ожидает повторной оплаты</b>" if payment["code"]==200 else ""
+        if order["active"] and order["separate_payment"] and payment["code"] != 200:
+            keyboard = buttons.getActionKeyboard(order["id"], OrderSend="Отправить ответ",
+                                             OrderClose="Закрыть заказ", OrderPaymentTwo="Отправить вторую оплату")
+        elif order["active"]:
+            keyboard = buttons.getActionKeyboard(order["id"], OrderSend="Отправить ответ",
+                                                 OrderClose="Закрыть заказ")
         if len(order["document"]) == 1:
             await message.answer_document(caption=mes, document=order["document"][0], reply_markup=keyboard)
             return

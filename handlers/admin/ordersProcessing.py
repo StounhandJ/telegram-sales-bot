@@ -78,7 +78,12 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
             int(data.get("price")) / 100 * order["discount"] if order["percent"] and order["discount"] != 0 else order[
                 "discount"])
         amount = int(amount)
-        PRICE = types.LabeledPrice(label="Работа на заказ", amount=amount * 100)
+        amount = amount if order["separate_payment"] else int(amount-(amount/100*5))
+        if amount < 200:
+            await state.finish()
+            await call.message.edit_text("Вышла сумма меньше 200р.\nОтправка отменена")
+            return
+        PRICE = types.LabeledPrice(label="Работа на заказ", amount=(int(amount/2) if order["separate_payment"] else amount) * 100)
         secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
         await bot.send_invoice(
             chat_id=order["userID"],
@@ -91,8 +96,8 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
             start_parameter='time-machine-example',
             payload=secret_key.hexdigest()
         )
-        paymentModel.create_payment(call.from_user.id, order["text"], order["document"], amount,
-                                    secret_key.hexdigest())
+        paymentModel.create_payment(call.from_user.id, order["text"], order["document"], order["separate_payment"], amount,
+                                    secret_key.hexdigest(), False)
         ordersProcessingModel.updateActive_order(data.get("orderID"))
         mes = config.adminMessage["message_yes_send"]
     await state.finish()
@@ -101,7 +106,9 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminPriceOrder.wait)
 async def message_send_no(call: types.CallbackQuery, state: FSMContext):
-    await call.message.edit_text(config.adminMessage["message_not_send"])
+    data = await state.get_data()
+    await call.message.delete()
+    await menu_info_order(data.get("orderID"), call.message)
     await state.finish()
 
 
@@ -200,9 +207,12 @@ async def menu_info_order(orderID, message):
     order = ordersProcessingModel.get_order_provisional(orderID)
     if order["code"] == 200:
         order = order["data"]
-        mes = config.adminMessage["order_pr_detailed_info"].format(orderID=order["id"], text=order["text"],
+        mes = config.adminMessage["order_pr_detailed_info"].format(orderID=order["id"], userID=order["userID"],
+                                                                   text=order["text"],
                                                                    discount=str(order["discount"]) + (
                                                                        "%" if order["percent"] else " р."),
+                                                                   payment="по частям" if order[
+                                                                       "separate_payment"] else " целиком",
                                                                    date=datetime.utcfromtimestamp(
                                                                        order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
         mes += "" if order["active"] else "<b>Заказ выполнен</b>"

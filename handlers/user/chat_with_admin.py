@@ -19,7 +19,7 @@ async def start_write_administration(message: types.Message, state: FSMContext):
     if banListModel.get_ban_user(message.from_user.id)["code"] == 200:
         await message.answer("Вы забанены")
         return
-
+    keyboard = None
     lastMessage = messagesModel.get_last_message_day_user(message.from_user.id)
     if lastMessage["code"] == 200 and len(lastMessage["data"]) >= 20:
         mes = "Вы привысили количество обращений в день"
@@ -30,7 +30,8 @@ async def start_write_administration(message: types.Message, state: FSMContext):
         await UserMes.message.set()
         await function.set_state_active(state)
         mes = "Напишите свое сообщение:"
-    await message.answer(mes)
+        keyboard = buttons.getCustomKeyboard(cancel="Отменить")
+    await message.answer(text=mes, reply_markup=keyboard)
 
 
 @dp.message_handler(state=UserMes.message)

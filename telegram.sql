@@ -38,6 +38,8 @@ CREATE TABLE `orders` (
   `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `active` tinyint(1) NOT NULL,
+  `separate_payment` tinyint(1) NOT NULL,
+  `payment_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `date` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -47,6 +49,7 @@ CREATE TABLE `orders_processing` (
   `text` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `active` tinyint(1) NOT NULL,
+  `separate_payment` tinyint(1) NOT NULL,
   `percent` tinyint(1) NOT NULL,
   `discount` int(10) UNSIGNED NOT NULL,
   `date` int(10) UNSIGNED NOT NULL
@@ -57,6 +60,8 @@ CREATE TABLE `payment` (
   `userID` int(11) NOT NULL,
   `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `separate_payment` tinyint(1) NOT NULL,
+  `additional` tinyint(1) NOT NULL,
   `price` int(11) NOT NULL,
   `secret_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `date` int(11) NOT NULL
