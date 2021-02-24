@@ -108,7 +108,7 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
                     break
         tasksCompletesModel.create_task_complete(call.from_user.id, data.get("orderID"), userDepartment,
                                                  data.get("description"), [data.get("document").file_id])
-        tasksModel.del_task_duplicate(call.from_user.id, data.get("orderID"))
+        tasksModel.del_task_duplicate(call.from_user.id, userDepartment, data.get("orderID"))
         await state.finish()
         mes, keyboard = menu_edit_promoCode(call.from_user.id)
         await call.message.edit_text(text=mes, reply_markup=keyboard)

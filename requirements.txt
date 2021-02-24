@@ -1,3 +1,4 @@
 aiogram>=2.11.2,<3.0
 environs~=8.0.0
 PyMySQL~=1.0.2
+YaDiskClient~=0.5.0

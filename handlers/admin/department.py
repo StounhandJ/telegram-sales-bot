@@ -10,6 +10,7 @@ from states.admin_create_department import DepartmentAdd
 from states.admin_edit_department import DepartmentEdit
 from utils.db_api.models import departmentModel
 from utils import function
+from utils.yandex_disk import YandexDisk
 
 
 ### Информация о заказах ###
@@ -91,6 +92,7 @@ async def create_code_yes(call: types.CallbackQuery, state: FSMContext):
     mes = ""
     if "DepartmentAdd:tag" == state_active:
         departmentModel.create_department(data.get("name"), data.get("tag"))
+        YandexDisk.mkdir_department(data.get("name"))
         await state.finish()
         await call.message.edit_text("Сохранено")
         return

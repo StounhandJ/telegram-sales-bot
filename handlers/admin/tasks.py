@@ -11,15 +11,19 @@ from utils import function
 async def start_edit_code(message: types.Message, state: FSMContext):
     mes = "В работе"
     tags = function.check_all_tag(message.text)
-    staff = []
+    staff = {}
     for tag in tags:
-        department = departmentModel.get_department(tag.split(".")[0] if "." in tag else tag)
+        tag_temporary = tag.split(".")[0] if "." in tag else tag
+        department = departmentModel.get_department(tag_temporary)
         if department["code"] == 200:
             try:
                 staff_temporary = [department["data"]["staff"][int(tag.split(".")[1]) - 1]] if "." in tag else \
                     department["data"][
                         "staff"]
-                staff = sorted(staff + staff_temporary)
+                if tag_temporary in staff.keys():
+                    staff[tag_temporary] = sorted(staff[tag_temporary] + staff_temporary)
+                else:
+                    staff[tag_temporary] = staff_temporary
             except:
                 pass
     orderID = function.check_number(message.text)
@@ -31,10 +35,11 @@ async def start_edit_code(message: types.Message, state: FSMContext):
         await message.answer("Вы неверно указали сотрудников")
         return
 
-    for userID in staff:
-        tasksModel.del_task_duplicate(userID, orderID)
-        tasksCompletesModel.del_task_duplicate(userID, orderID)
-    tasksModel.create_task(orderID, staff, text)
+    for departmentTag in staff:
+        for userID in staff[departmentTag]:
+            tasksModel.del_task_duplicate(userID, departmentTag, orderID)
+            tasksCompletesModel.del_task_duplicate(userID, departmentTag, orderID)
+        tasksModel.create_task(orderID, staff[departmentTag], departmentTag, text)
     await message.answer(mes)
 
 
@@ -66,7 +71,8 @@ async def close_order(message: types.Message, state: FSMContext):
         documents = []
         for number, task in enumerate(result["data"]):
             user = await bot.get_chat(task["userID"])
-            mes_start += form.format(number=number + 1, department=task["departmentTAG"], user=user.full_name, userID=task["userID"])
+            mes_start += form.format(number=number + 1, department=task["departmentTAG"], user=user.full_name,
+                                     userID=task["userID"])
             documents += task["document"]
         for document in documents:
             await message.answer_document(document=document)

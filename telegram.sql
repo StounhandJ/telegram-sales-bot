@@ -88,6 +88,7 @@ CREATE TABLE `tasks` (
   `id` int(11) NOT NULL,
   `orderID` int(11) NOT NULL,
   `staff` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `departmentTag` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `message` text COLLATE utf8mb4_unicode_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -95,7 +96,7 @@ CREATE TABLE `tasks_completes` (
   `id` int(10) UNSIGNED NOT NULL,
   `userID` int(10) UNSIGNED NOT NULL,
   `orderID` int(10) UNSIGNED NOT NULL,
-  `departmentTAG` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `departmentTag` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `document` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `date` int(10) UNSIGNED NOT NULL

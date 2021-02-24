@@ -1,7 +1,7 @@
 from aiogram import executor
 
+import middlewares
 from loader import dp
-import middlewares, handlers
 from utils.notify_admins import on_startup_notify
 
 
