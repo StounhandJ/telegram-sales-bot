@@ -14,6 +14,9 @@ DATABASE = env.str("DATABASE")
 DISK_LOGIN = env.str("DISK_LOGIN")
 DISK_PASSWORD_APP = env.str("DISK_PASSWORD_APP")
 
+discount_full_payment = 5  # Скидка при полной оплате сразу
+
+
 works = {"Курсовая": {
         "description": "Цена работы может варьироваться от 3000 р.\nЖелательно предоставление методических материалов по КП.",
         "template": "Шаблон заявки оформления курсовой работы<i>\nПредмет:\nЗаголовок:\nТекст заявки:\nЖелаемые сроки выполнения:\nПрикреплённые файлы:</i>\nНапишите вашу заявку соответственно шаблону:"
@@ -66,14 +69,22 @@ message = {
     "message_no": "Напишите свое сообщение ещё раз: ",
     "message_cancel": "Отправка сообщения администрации отменена.",
     "order_complete": "<b>Вам сообщение от администратора</b> по поводу вашего заказа:",
-    "order_close": "Ваш <b>заказ был выполнен</b> и закрыт"
+    "order_close": "Ваш <b>заказ был выполнен</b> и закрыт",
+    "order_send": "Ваша заявка принята",
+
+    "orderPR_denied": "<b>Вам отказано</b> в заказе, коментарий к отказу:\n",
+
+    "increased_requests": "Вы превысили количество обращений в день",
+    "repeat_requests": "Вы недавно отпраили сообщение.\nПовторное можно будет отправить через <b>{min}</b> минут",
+
+    "report_mes": "Напишите свое сообщение:",
 }
 
 adminMessage = {
-    "help": "/orderspr - Все заявки в рассмотрении\n/infopr orderProID - Подробная информация о заказе на рассмотрении\n/sendr orderProID - отправить форму оплаты\n/closer orderProID - Отказать в заказе\n"
-            "/orders - Выведет все заказы\n/info orderID - Информация о заказе\n/orderClose orderID - Закрыт заказ\n/send orderID - Начать ввод сообщений для отправки заказчику\n"
-            "/codeList - Список всех промокодов\n/codeAdd - Начать создание нового промокода\n/codeEdit codeID - Изменить промокод\n/ordermes or /allmes - Просмотреть все входящие сообщения\n"
-            "/mesinfo mesID - Информация о входящем сообщении\n/usend mesID - Отправить сообщение в ответ",
+    "help": "Команды:/akeyboard - Включить клавиатуру администратора\n/banList - Список забаненных\n/ban |userID| - Добавить человека в бан\n/unban |userID| - Удалить человека из бана\n/departmentAdd - Создание отдела\n/infod |tag| - Информация о отделе"
+            "\n/departmentEdit |tag| - Редактирования отдела\n/infomes |mesID| - Информация о сообщении\n/info |orderID| - Информация о оплаченном заказе\n/infopr |PRorderID| - Информация о заказе на рассмотрении"
+            "\n/codeAdd - Создание промокода\n/codeEdit |codeID| - Редактирование промокода\n/set_task |tag| |orderID| |messages| - Создание задачи для отделов (tag= @diz or @diz.2)"
+            "\n/task_list - Список выданных задач\n/all_result |orderID| - Информация о всех результатах работы по данному заказу",
     "ordersPR_main": "Список заказов:\n{text}\n/infopr orderProID - Подробная информация о заказе на рассмотрении",
     "orders_main": "Список заказов:\n{text}\n/info orderID - Информация о заказе",
     "orders_missing": "Заказов нет",
@@ -127,7 +138,7 @@ adminMessage = {
 
     "departments_missing": "Отделов нет",
     "department_missing": "Данный отдел не существует",
-    "departments_main": "Отделы:<i>\n{text}</i>\nКоманды:",
+    "departments_main": "Отделы:<i>\n{text}</i>\nКоманды:/infod |tag|\n/departmentEdit |tag|\n/departmentAdd",
     "department_info": "{num}. Название отдела: {name}\nТэг: @{tag}\nКоличество сотрудников: {count_staff}\n\n",
     "department_detailed_info": "Название отдела: {name}\nТэг: @{tag}\nСотрудники: {count_staff}",
     "department_add_name": "Укажите название отдела",
@@ -139,6 +150,24 @@ adminMessage = {
     "department_edit_back": "Меню изменений отдела закрыто",
     "department_del_yes": "Отдел удален",
     "department_del_no": "Удаление отдела отменено",
+
+    "new_task_staff": "Вам поставленна новая задача /task_list",
+    "task_list_missing": "Задачи не установлены",
+    "task_list_main": "Задачи:\n{text}\n/set_task staff orderID mes\n/all_result orderID",
+    "task_list_info": "Номер заказа <b>{orderID}</b>\nКоличество людей в работе: {staff}\n\n",
+    "task_result_missing": "Результатов по данной работе нет",
+    "task_result_main": "Результаты:\n{text}",
+    "task_result_info": "{number}. @{department} {user} ({userID})\n\n",
+}
+
+departmentMessage = {
+    "task_list_missing": "У вас нет задач",
+    "task_main": "Список ваших задач:\n",
+    "task_button": "Заказ номер {}",
+    "task_info": "Номер заказа <b>{orderID}</b>\nКоментарий к заказу: {description}\nКоментарий от админа: {descriptionA}",
+    "task_add_comment": "Напишите коментарий к работе:",
+    "task_add_document": "Прикрепите документ или архив с работой",
+    "task_send": "Ответ отправлен",
 }
 
 payMessage = {

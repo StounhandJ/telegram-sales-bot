@@ -198,5 +198,5 @@ async def create_order(call, state):
     promoCodesModel.promo_code_used(promoCode)
     await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])
     await state.finish()
-    mes = "Ваша заявка принята"
+    mes = config.message["order_send"]
     await call.message.edit_text(text=mes)

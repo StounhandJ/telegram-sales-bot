@@ -39,42 +39,41 @@ async def start_edit_code(message: types.Message, state: FSMContext):
         for userID in staff[departmentTag]:
             tasksModel.del_task_duplicate(userID, departmentTag, orderID)
             tasksCompletesModel.del_task_duplicate(userID, departmentTag, orderID)
-            bot.send_message(chat_id=userID, text="Вам поставленна новая задача /task_list")
+            await bot.send_message(chat_id=userID, text=config.adminMessage["new_task_staff"])
         tasksModel.create_task(orderID, staff[departmentTag], departmentTag, text)
     await message.answer(mes)
 
 
-@dp.message_handler(user_id=config.ADMINS, commands=["task_list"])
+@dp.message_handler(user_id=config.ADMINS, commands=["task_listA"])
 async def close_order(message: types.Message, state: FSMContext):
     tasks = tasksModel.get_all_tasks()
-    mes_start = "Задачи не установлены"
+    mes = config.adminMessage["task_list_missing"]
     if tasks["code"] == 200:
-        mes_start = "Задачи:\n"
-        form = "Номер заказа <b>{orderID}</b>\nКоличество людей в работе: {staff}\n\n"
+        text = ""
         tasksOrder = {}
         for task in tasks["data"]:
             tasksOrder[task["orderID"]] = tasksOrder[task["orderID"]] + len(task["staff"]) if task[
                                                                                                   "orderID"] in tasksOrder.keys() else len(
                 task["staff"])
         for order, staff in tasksOrder.items():
-            mes_start += form.format(orderID=order, staff=staff)
-        mes_start += "/set_task staff orderID mes\n/all_result orderID"
-    await message.answer(mes_start)
+            text += config.adminMessage["task_list_info"].format(orderID=order, staff=staff)
+        mes = config.adminMessage["task_list_main"].format(text=text)
+    await message.answer(mes)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["all_result"])
 async def close_order(message: types.Message, state: FSMContext):
     result = tasksCompletesModel.get_orderID_tasks_completes(function.checkID(message.text))
-    mes_start = "Результатов по данной работе нет"
+    mes = config.adminMessage["task_result_missing"]
     if result["code"] == 200:
-        mes_start = "Результаты:\n"
-        form = "{number}. @{department} {user} ({userID})\n\n"
+        text = ""
         documents = []
         for number, task in enumerate(result["data"]):
             user = await bot.get_chat(task["userID"])
-            mes_start += form.format(number=number + 1, department=task["departmentTag"], user=user.full_name,
+            text += config.adminMessage["task_result_info"].format(number=number + 1, department=task["departmentTag"], user=user.full_name,
                                      userID=task["userID"])
             documents += task["document"]
         for document in documents:
             await message.answer_document(document=document)
-    await message.answer(mes_start)
+        mes = config.adminMessage["task_result_main"].format(text=text)
+    await message.answer(mes)

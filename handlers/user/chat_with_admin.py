@@ -22,14 +22,14 @@ async def start_write_administration(message: types.Message, state: FSMContext):
     keyboard = None
     lastMessage = messagesModel.get_last_message_day_user(message.from_user.id)
     if lastMessage["code"] == 200 and len(lastMessage["data"]) >= 20:
-        mes = "Вы привысили количество обращений в день"
+        mes = config.message["increased_requests"]
     elif lastMessage["code"] == 200 and lastMessage["data"][len(lastMessage["data"]) - 1]["date"] > time.time() - 60 * 30:
-        mes = "Вы недавно отпраили сообщение.\nПовторное можно будет отправить через <b>{date}</b> минут".format(
-            date=int((lastMessage["data"][len(lastMessage["data"]) - 1]["date"]-(time.time() - 60 * 30))/60))
+        mes = config.message["repeat_requests"].format(
+            min=int((lastMessage["data"][len(lastMessage["data"]) - 1]["date"]-(time.time() - 60 * 30))/60))
     else:
         await UserMes.message.set()
         await function.set_state_active(state)
-        mes = "Напишите свое сообщение:"
+        mes = config.message["report_mes"]
         keyboard = buttons.getCustomKeyboard(cancel="Отменить")
     await message.answer(text=mes, reply_markup=keyboard)
 

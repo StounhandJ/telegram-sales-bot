@@ -78,10 +78,10 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
             int(data.get("price")) / 100 * order["discount"] if order["percent"] and order["discount"] != 0 else order[
                 "discount"])
         amount = int(amount)
-        amount = amount if order["separate_payment"] else int(amount-(amount/100*5))
-        if amount < 200:
+        amount = amount if order["separate_payment"] else int(amount-(amount/100*config.discount_full_payment))
+        if amount < 100:
             await state.finish()
-            await call.message.edit_text("Вышла сумма меньше 200р.\nОтправка отменена")
+            await call.message.edit_text("Вышла сумма меньше 100р.\nОтправка отменена")
             return
         PRICE = types.LabeledPrice(label="Работа на заказ", amount=(int(amount/2) if order["separate_payment"] else amount) * 100)
         secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
@@ -148,7 +148,7 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     order = ordersProcessingModel.get_order_provisional(data.get("orderID"))
     if order["code"] == 200:
-        text = "<b>Вам отказано</b> в заказе, коментарий к отказу:\n"
+        text = config.message["orderPR_denied"]
         text += data.get("text")
         ordersProcessingModel.updateActive_order(data.get("orderID"))
         await bot.send_message(chat_id=order["data"]["userID"], text=text)

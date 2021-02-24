@@ -14,4 +14,4 @@ async def show_help(message: types.Message):
 
 @dp.message_handler(user_id=config.ADMINS, commands=["Akeyboard"])
 async def show_help(message: types.Message):
-    await message.answer(config.adminMessage["help"], reply_markup=admin_menu)
+    await message.answer("Клавитатура админа установлена", reply_markup=admin_menu)
