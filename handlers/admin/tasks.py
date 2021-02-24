@@ -43,7 +43,7 @@ async def start_edit_code(message: types.Message, state: FSMContext):
     await message.answer(mes)
 
 
-@dp.message_handler(user_id=config.ADMINS, commands=["task_list"])
+@dp.message_handler(user_id=config.ADMINS, commands=["task_list1"])
 async def close_order(message: types.Message, state: FSMContext):
     tasks = tasksModel.get_all_tasks()
     mes_start = "Задачи не установлены"
@@ -71,7 +71,7 @@ async def close_order(message: types.Message, state: FSMContext):
         documents = []
         for number, task in enumerate(result["data"]):
             user = await bot.get_chat(task["userID"])
-            mes_start += form.format(number=number + 1, department=task["departmentTAG"], user=user.full_name,
+            mes_start += form.format(number=number + 1, department=task["departmentTag"], user=user.full_name,
                                      userID=task["userID"])
             documents += task["document"]
         for document in documents:
