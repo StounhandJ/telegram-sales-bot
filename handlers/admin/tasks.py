@@ -39,11 +39,12 @@ async def start_edit_code(message: types.Message, state: FSMContext):
         for userID in staff[departmentTag]:
             tasksModel.del_task_duplicate(userID, departmentTag, orderID)
             tasksCompletesModel.del_task_duplicate(userID, departmentTag, orderID)
+            bot.send_message(chat_id=userID, text="Вам поставленна новая задача /task_list")
         tasksModel.create_task(orderID, staff[departmentTag], departmentTag, text)
     await message.answer(mes)
 
 
-@dp.message_handler(user_id=config.ADMINS, commands=["task_list1"])
+@dp.message_handler(user_id=config.ADMINS, commands=["task_list"])
 async def close_order(message: types.Message, state: FSMContext):
     tasks = tasksModel.get_all_tasks()
     mes_start = "Задачи не установлены"

@@ -26,16 +26,19 @@ async def close_order(call: types.CallbackQuery, callback_data: dict):
     if call.from_user.id in staffs:
         mes = config.adminMessage["order_missing"]
         keyboard = None
-        order = orderModel.get_order(callback_data.get("id"))
+        task = tasksModel.get_task(callback_data.get("id"))
+        if task["code"] != 200:
+            await call.message.edit_text(text="Задача отсутствует")
+            return
+        order = orderModel.get_order(task["data"]["orderID"])
         if order["code"] == 200 and check_tasks(call.from_user.id, order["data"]["id"]):
             order = order["data"]
             keyboard = buttons.getActionKeyboard(order["id"], departmentTaskSend="Сдать работу",
                                                  departmentTaskCancel="Назад")
-            form = "Номер заказа <b>{orderID}</b>\nКоментарий к заказу: {description}\n"
+            form = "Номер заказа <b>{orderID}</b>\nКоментарий к заказу: {description}\nКоментарий от админа: {descriptionA}"
             mes = form.format(orderID=order["id"], price=order["price"],
                               description=order["description"],
-                              date=datetime.utcfromtimestamp(
-                                  order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
+                              descriptionA=task["data"]["message"])
             if len(order["document"]) == 1:
                 await call.message.delete()
                 await call.message.answer_document(caption=mes, document=order["document"][0], reply_markup=keyboard)
@@ -165,6 +168,6 @@ def menu_edit_promoCode(userID):
     if tasks["code"] == 200:
         mes = "Список ваших задач:\n"
         for number, task in enumerate(tasks["data"]):
-            keyboard_info["Заказ номер {}".format(task["orderID"])] = task["orderID"]
+            keyboard_info["Заказ номер {}".format(task["orderID"])] = task["id"]
         keyboard = buttons.getAuxiliaryOrdersKeyboard("departmentTaskOrder", keyboard_info)
     return [mes, keyboard]
