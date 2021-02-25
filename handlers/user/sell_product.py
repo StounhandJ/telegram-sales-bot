@@ -173,13 +173,15 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
     data = await state.get_data()
     state_active = data.get("state_active")
     mes = config.message["comment_confirmation_no"]
-    keyboard = None
+    keyboard = buttons.getCustomKeyboard(cancel="Отменить заказ")
     if "SellInfo:promoCode" == state_active:
         await SellInfo.promoCode.set()
     elif "SellInfo:document" == state_active:
         await SellInfo.document.set()
     elif "SellInfo:description" == state_active:
         await SellInfo.description.set()
+    elif "SellInfo:email" == state_active:
+        await SellInfo.email.set()
     elif "SellInfo:documentCheck" == state_active:
         await SellInfo.promoCodeCheck.set()
         mes = config.message["comment_promoCodeCheck"]
