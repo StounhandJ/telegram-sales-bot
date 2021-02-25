@@ -24,6 +24,7 @@ async def show_codeList(message: types.Message):
         for code in codes["data"]:
             discount = str(code["discount"]) + ("%" if code["percent"] else " р.")
             text += config.adminMessage["code_info"].format(num=num, id=code["id"], name=code["name"],
+                                                            code=code["code"],
                                                             count=code["count"] if code[
                                                                 "limitation_use"] else "Бесконечно",
                                                             discount=discount)

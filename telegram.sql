@@ -103,6 +103,8 @@ CREATE TABLE `tasks_completes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+
+
 ALTER TABLE `ban_list`
   ADD PRIMARY KEY (`id`),
   ADD KEY `userID` (`userID`);
@@ -133,6 +135,9 @@ ALTER TABLE `tasks`
 
 ALTER TABLE `tasks_completes`
   ADD PRIMARY KEY (`id`);
+
+ALTER TABLE `user_information`
+  ADD UNIQUE KEY `userID` (`userID`);
 
 
 ALTER TABLE `ban_list`

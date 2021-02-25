@@ -59,10 +59,15 @@ async def start_create_code(message: types.Message, state: FSMContext):
 @dp.message_handler(state=DepartmentAdd.name, user_id=config.ADMINS)
 async def create_code_name(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
-    await state.update_data(name=message.text)
-    await DepartmentAdd.wait.set()
-    await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить создание"))
+    departments = departmentModel.get_all_departments()
+    if not (departments["code"] == 200 and message.text in [department["name"] for department in departments["data"]]):
+        await state.update_data(name=message.text)
+        await DepartmentAdd.wait.set()
+        await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
+                             reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить создание"))
+    else:
+        await message.answer("Отдел с таким именем уже существует",
+                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.message_handler(state=DepartmentAdd.tag, user_id=config.ADMINS)

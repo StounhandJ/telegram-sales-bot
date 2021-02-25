@@ -1,4 +1,4 @@
-from datetime import datetime
+import os
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -6,10 +6,11 @@ from aiogram.dispatcher import FSMContext
 from data import config
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback, action_callback
-from loader import dp
+from loader import dp, bot
 from states.staff_task_complete import TaskComplete
 from utils.db_api.models import departmentModel, tasksModel, tasksCompletesModel, orderModel
 from utils import function
+from utils.yandex_disk import YandexDisk
 
 
 @dp.message_handler(commands=["task_list"])
@@ -107,11 +108,28 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
     if "TaskComplete:document" == state_active:
         response = tasksModel.get_task(data.get("taskID"))
         userDepartment = ""
+        userDepartmentName = ""
         if response["code"] == 200:
             userDepartment = response["data"]["departmentTag"]
+            department = departmentModel.get_department(userDepartment)
+            userDepartmentName = department["data"]["name"] if department["code"] == 200 else ""
+        else:
+            await call.message.edit_text(text="Произашла ошибка, невозможно отправить данную работу, обратитесь к администрации.")
+            return
         tasksCompletesModel.create_task_complete(call.from_user.id, data.get("orderID"), userDepartment,
                                                  data.get("description"), [data.get("document").file_id])
         tasksModel.del_task_duplicate(call.from_user.id, userDepartment, data.get("orderID"))
+        # Отправка фала на диск #
+        # file_info = await bot.get_file(
+        #     file_id="BQACAgIAAxkBAAIdyGA2j4IavP-h74wX4lHQBenPvsNqAAL2DQAC54K5SVnKbzqsu9OOHgQ")
+        # fileName, file_extension = os.path.splitext(file_info.file_path)
+        # file = await bot.download_file(file_path=file_info.file_path)
+        # with open(f'documents/{file_info.file_unique_id}{file_extension}', 'wb') as new_file:
+        #     new_file.write(file.read())
+        # YandexDisk.add_file(call.from_user.id, userDepartmentName,
+        #                     f'{os.getcwd()}/documents/{file_info.file_unique_id}{file_extension}')
+        # os.remove(f'documents/{file_info.file_unique_id}{file_extension}')
+        # ---------------------- #
         await state.finish()
         mes, keyboard = menu_edit_promoCode(call.from_user.id)
         await call.message.edit_text(text=mes, reply_markup=keyboard)

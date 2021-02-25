@@ -1,12 +1,13 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from re import *
 
 from data import config
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import setting_callback, confirmation_callback, type_work_callback
-from loader import dp
+from loader import dp, bot
 from states.user_sell_info import SellInfo
-from utils.db_api.models import ordersProcessingModel, promoCodesModel, banListModel
+from utils.db_api.models import ordersProcessingModel, promoCodesModel, banListModel, userInformationModel
 from utils.notify_admins import notify_admins_message
 from utils import function
 
@@ -55,6 +56,20 @@ async def adding_comment(message: types.Message, state: FSMContext):
                          reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
 
 
+@dp.message_handler(state=SellInfo.email)
+async def adding_comment(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
+    pattern = compile('(^|\s)[-a-z0-9_.]+@([-a-z0-9]+\.)+[a-z]{2,6}(\s|$)')
+    if pattern.match(message.text):
+        await state.update_data(email=message.text)
+        await SellInfo.wait.set()
+        await message.answer(config.message["email_confirmation"].format(text=message.text),
+                             reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+    else:
+        await message.answer(config.message["comment_email_no_validation"].format(text=message.text),
+                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить заказ"))
+
+
 @dp.message_handler(state=SellInfo.wait)
 async def waiting(message: types.Message):
     pass
@@ -96,7 +111,6 @@ async def adding_promoCode(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="noElement"), state=SellInfo)
 async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=2)
     data = await state.get_data()
     mes = ""
     state_active = data.get("state_active")
@@ -116,7 +130,6 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=SellInfo)
 async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=2)
     data = await state.get_data()
     mes = ""
     state_active = data.get("state_active")
@@ -141,12 +154,16 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
         await SellInfo.document.set()
         mes = config.message["comment_document"]
         keyboard = buttons.getCustomKeyboard(noElement="Нет файла")
-    elif "SellInfo:description" == state_active:
+    elif "SellInfo:email" == state_active:
         await SellInfo.documentCheck.set()
         description = data["type_work"] + "\n\n" + data.get("description")
         await state.update_data(description=description)
         mes = config.message["comment_documentCheck"]
         keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+    elif "SellInfo:description" == state_active:
+        await SellInfo.email.set()
+        mes = config.message["comment_email"]
+        keyboard = buttons.getCustomKeyboard(cancel="Отменить заказ")
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
@@ -188,14 +205,17 @@ async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: F
 async def create_order(call, state):
     data = await state.get_data()
     document = [data.get("document").file_id] if "document" in data.keys() else []
+    email = data.get("email") if "email" in data.keys() else ""
+    description = data.get("description") if "description" in data.keys() else ""
     percent = data.get("percent") if "percent" in data.keys() else False
     discount = data.get("discount") if "discount" in data.keys() else 0
     promoCode = data.get("promoCode") if "promoCode" in data.keys() else ""
     separatePayment = data.get("separatePayment") if "separatePayment" in data.keys() else True
-    ordersProcessingModel.create_order_provisional(call.from_user.id, data.get("description"), document,
+    ordersProcessingModel.create_order_provisional(call.from_user.id, description, document,
                                                    separatePayment, percent,
                                                    discount)
     promoCodesModel.promo_code_used(promoCode)
+    userInformationModel.update_email(call.from_user.id, email)
     await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])
     await state.finish()
     mes = config.message["order_send"]

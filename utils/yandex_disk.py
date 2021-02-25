@@ -1,3 +1,4 @@
+import os
 import time
 
 from YaDiskClient.YaDiskClient import YaDisk
@@ -48,6 +49,11 @@ class YandexDiskClass:
         self.disk.cp(f"/{self.path_main}/{departmentNameOld}/", f"/{self.path_main}/{departmentNameNew}/")
         time.sleep(2)
         self.disk.rm(f"{self.path_main}/{departmentNameOld}")
+
+    def add_file(self, stafferID, departmentName, file):
+        elements_path = file.split('/')
+        file_name = elements_path[len(elements_path)-1]
+        self.disk.upload(file, f"/{self.path_main}/{departmentName}/{stafferID}/{file_name}")
 
 
 YandexDisk = YandexDiskClass()
