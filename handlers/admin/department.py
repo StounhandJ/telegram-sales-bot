@@ -53,7 +53,7 @@ async def show_info_order(message: types.Message):
 async def start_create_code(message: types.Message, state: FSMContext):
     await DepartmentAdd.name.set()
     await function.set_state_active(state)
-    await message.answer(config.adminMessage["department_add_name"])
+    await message.answer(text=config.adminMessage["department_add_name"], reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.message_handler(state=DepartmentAdd.name, user_id=config.ADMINS)
@@ -105,7 +105,7 @@ async def create_code_yes(call: types.CallbackQuery, state: FSMContext):
         await DepartmentAdd.tag.set()
         mes = config.adminMessage["department_add_tag"]
     await function.set_state_active(state)
-    await call.message.edit_text(text=mes)
+    await call.message.edit_text(text=mes, reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=DepartmentAdd)
@@ -117,13 +117,13 @@ async def create_code_no(call: types.CallbackQuery, state: FSMContext):
     elif "DepartmentAdd:name" == state_active:
         await DepartmentAdd.name.set()
     await function.set_state_active(state)
-    await call.message.edit_text(config.adminMessage["code_add_repeat"])
+    await call.message.edit_text(text=config.adminMessage["code_add_repeat"], reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=DepartmentAdd)
 async def create_code_cancel(call: types.CallbackQuery, state: FSMContext):
-    await call.message.edit_text(config.adminMessage["code_add_cancel"])
     await state.finish()
+    await call.message.edit_text(config.adminMessage["code_add_cancel"])
 
 
 ### Изменение промокода ###
@@ -250,10 +250,12 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
 
     if "DepartmentEdit:name" == state_active:
         departmentModel.update_department(department["id"], data.get("name"), department["tag"])
+        YandexDisk.rename_department(department["name"],data.get("name"))
     elif "DepartmentEdit:tag" == state_active:
         departmentModel.update_department(department["id"], department["name"], data.get("tag"))
     elif "DepartmentEdit:add_user" == state_active:
         departmentModel.add_staff(department["id"], data.get("add_user"))
+        YandexDisk.mkdir_staffer(data.get("add_user"), department["name"])
     elif "DepartmentEdit:del_user" == state_active:
         departmentModel.del_staff(department["id"], data.get("del_user"))
 

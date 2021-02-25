@@ -1,6 +1,5 @@
 import hashlib
 import time
-from datetime import datetime
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -25,10 +24,11 @@ async def show_orders(message: types.Message):
         text = ""
         num = 1
         for item in orders["data"]:
-            date = datetime.utcfromtimestamp(item["date"])
-            dateMes = "{year} год {day} {month} {min}".format(year=date.year, day=date.day,
-                                                              month=months[date.month - 1],
-                                                              min=date.strftime("%H:%M"))
+            date = time.localtime(item["date"])
+            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
+                                                                     month=months[date.tm_mon - 1],
+                                                                     hour=date.tm_hour,
+                                                                     min=time.strftime("%H:%M", date))
             text += config.adminMessage["order_info"].format(num=num, orderID=item["id"], date=dateMes)
             num += 1
         mes = config.adminMessage["ordersPR_main"].format(text=text)
@@ -213,8 +213,7 @@ async def menu_info_order(orderID, message):
                                                                        "%" if order["percent"] else " р."),
                                                                    payment="по частям" if order[
                                                                        "separate_payment"] else " целиком",
-                                                                   date=datetime.utcfromtimestamp(
-                                                                       order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
+                                                                   date=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(order["date"])))
         mes += "" if order["active"] else "<b>Заказ выполнен</b>"
         keyboard = buttons.getActionKeyboard(order["id"], OrderProcessingSend="Отправить форму оплаты",
                                              OrderProcessingCloser="Отказать") if order["active"] else None

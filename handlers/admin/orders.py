@@ -1,6 +1,5 @@
 import hashlib
 import time
-from datetime import datetime
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -27,10 +26,11 @@ async def show_orders(message: types.Message):
         text = ""
         num = 1
         for item in orders["data"]:
-            date = datetime.utcfromtimestamp(item["date"])
-            dateMes = "{year} год {day} {month} {min}".format(year=date.year, day=date.day,
-                                                              month=months[date.month - 1],
-                                                              min=date.strftime("%H:%M"))
+            date = time.localtime(item["date"])
+            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
+                                                                     month=months[date.tm_mon - 1],
+                                                                     hour=date.tm_hour,
+                                                                     min=time.strftime("%H:%M", date))
             text += config.adminMessage["order_info"].format(num=num, orderID=item["id"], date=dateMes)
             num += 1
         mes = config.adminMessage["orders_main"].format(text=text)
@@ -207,9 +207,9 @@ async def send_order_button(call: types.CallbackQuery, state: FSMContext, callba
     elif order["code"] == 200:
         order = order["data"]
         PRICE = types.LabeledPrice(label="Работа на заказ",
-                                   amount=int(order["price"]/2)*100)
+                                   amount=int(order["price"] / 2) * 100)
         secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
-        await bot.send_message(order["userID"],config.payMessage["payment_two"])
+        await bot.send_message(order["userID"], config.payMessage["payment_two"])
         await bot.send_invoice(
             chat_id=order["userID"],
             title=config.payMessage["title"],
@@ -222,8 +222,9 @@ async def send_order_button(call: types.CallbackQuery, state: FSMContext, callba
             payload=secret_key.hexdigest()
         )
         orderModel.set_paymentKey_order(order["id"], secret_key.hexdigest())
-        paymentModel.create_payment(call.from_user.id, order["description"], order["document"], order["separate_payment"],
-                                    order["price"]/2,
+        paymentModel.create_payment(call.from_user.id, order["description"], order["document"],
+                                    order["separate_payment"],
+                                    order["price"] / 2,
                                     secret_key.hexdigest(), True)
         mes = "Отправленно"
     await call.message.answer(mes)
@@ -243,7 +244,7 @@ async def menu_send_order(orderID, message, state):
         await AdminMesOrder.message.set()
         mes = config.adminMessage["message_send"]
         keyboard = buttons.getCustomKeyboard(cancel="Отмена")
-    await message.answer(text=mes,reply_markup=keyboard)
+    await message.answer(text=mes, reply_markup=keyboard)
 
 
 async def menu_close_order(orderID, message, state):
@@ -269,14 +270,13 @@ async def menu_info_order(orderID, message):
                                                                 price=order["price"],
                                                                 description=order["description"],
                                                                 payment="половина суммы" if order[
-                                                                       "separate_payment"] else "вся сумма",
-                                                                date=datetime.utcfromtimestamp(
-                                                                    order["date"]).strftime('%Y-%m-%d %H:%M:%S'))
+                                                                    "separate_payment"] else "вся сумма",
+                                                                date=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(order["date"])))
         mes += "" if order["active"] else "<b>Заказ выполнен</b>"
-        mes += "<b>Ожидает повторной оплаты</b>" if payment["code"]==200 else ""
+        mes += "<b>Ожидает повторной оплаты</b>" if payment["code"] == 200 else ""
         if order["active"] and order["separate_payment"] and payment["code"] != 200:
             keyboard = buttons.getActionKeyboard(order["id"], OrderSend="Отправить ответ",
-                                             OrderClose="Закрыть заказ", OrderPaymentTwo="Отправить вторую оплату")
+                                                 OrderClose="Закрыть заказ", OrderPaymentTwo="Отправить вторую оплату")
         elif order["active"]:
             keyboard = buttons.getActionKeyboard(order["id"], OrderSend="Отправить ответ",
                                                  OrderClose="Закрыть заказ")

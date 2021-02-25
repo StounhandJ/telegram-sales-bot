@@ -1,4 +1,6 @@
+import asyncio
 import os
+import time
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -100,7 +102,6 @@ async def message_add_doc(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=TaskComplete)
 async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
-    await call.answer(cache_time=2)
     data = await state.get_data()
     mes = ""
     keyboard = None
@@ -120,15 +121,22 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
                                                  data.get("description"), [data.get("document").file_id])
         tasksModel.del_task_duplicate(call.from_user.id, userDepartment, data.get("orderID"))
         # Отправка фала на диск #
-        # file_info = await bot.get_file(
-        #     file_id="BQACAgIAAxkBAAIdyGA2j4IavP-h74wX4lHQBenPvsNqAAL2DQAC54K5SVnKbzqsu9OOHgQ")
-        # fileName, file_extension = os.path.splitext(file_info.file_path)
-        # file = await bot.download_file(file_path=file_info.file_path)
-        # with open(f'documents/{file_info.file_unique_id}{file_extension}', 'wb') as new_file:
-        #     new_file.write(file.read())
-        # YandexDisk.add_file(call.from_user.id, userDepartmentName,
-        #                     f'{os.getcwd()}/documents/{file_info.file_unique_id}{file_extension}')
-        # os.remove(f'documents/{file_info.file_unique_id}{file_extension}')
+        if not os.path.exists("documents"):
+            os.makedirs("documents")
+        start = time.time()
+        file_info = await bot.get_file(
+            file_id=data.get("document").file_id)
+        file_extension = os.path.splitext(file_info.file_path)[1]
+        file_name = data.get("document").file_name.split(".")[0]
+        file = await bot.download_file(file_path=file_info.file_path)
+        with open(f'documents/{file_name}{file_extension}', 'wb') as new_file:
+            new_file.write(file.read())
+        print(time.time()-start)
+        start = time.time()
+        YandexDisk.add_file(call.from_user.id, userDepartmentName, data.get("orderID"),
+                            f'{os.getcwd()}/documents/{file_name}{file_extension}')
+        print(time.time() - start)
+        os.remove(f'documents/{file_name}{file_extension}')
         # ---------------------- #
         await state.finish()
         mes, keyboard = menu_edit_promoCode(call.from_user.id)

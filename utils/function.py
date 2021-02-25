@@ -8,10 +8,11 @@ def string_handler(text: str):
 
 
 def checkID(mes):
-    try:
-        return int(mes.split(' ')[1])
-    except:
-        return -1
+    elements = mes.split(' ')
+    for element in elements:
+        if element.isdigit():
+            return int(element)
+    return -1
 
 
 def check_first_tag(mes):

@@ -1,4 +1,4 @@
-from datetime import datetime
+import time
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -23,10 +23,11 @@ async def order_messages(message: types.Message):
         text = ""
         num = 1
         for item in messages["data"]:
-            date = datetime.utcfromtimestamp(item["date"])
-            dateMes = "{year} год {day} {month} {min}".format(year=date.year, day=date.day,
-                                                              month=months[date.month - 1],
-                                                              min=date.strftime("%H:%M"))
+            date = time.localtime(item["date"])
+            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
+                                                                     month=months[date.tm_mon - 1],
+                                                                     hour=date.tm_hour,
+                                                                     min=time.strftime("%H:%M", date))
             text += config.adminMessage["messages_info"].format(num=num, id=item["id"], date=dateMes)
             num += 1
         mes = config.adminMessage["messages_main"].format(start=start, text=text)
@@ -41,15 +42,18 @@ async def all_messages(message: types.Message):
               "Ноябрь", "Декабрь"]
     messages = messagesModel.get_all_messages()
     if messages["code"] == 200:
-        mes = config.adminMessage["messages_main_all"]
+        start = config.adminMessage["messages_main_all"]
+        text = ""
         num = 1
         for item in messages["data"]:
-            date = datetime.utcfromtimestamp(item["date"])
-            dateMes = "{year} год {day} {month} {min}".format(year=date.year, day=date.day,
-                                                              month=months[date.month - 1],
-                                                              min=date.strftime("%H:%M"))
-            mes += config.adminMessage["messages_info"].format(num=num, id=item["id"], date=dateMes)
+            date = time.localtime(item["date"])
+            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
+                                                              month=months[date.tm_mon - 1],
+                                                              hour=date.tm_hour,
+                                                              min=time.strftime("%H:%M", date))
+            text += config.adminMessage["messages_info"].format(num=num, id=item["id"], date=dateMes)
             num += 1
+        mes = config.adminMessage["messages_main"].format(start=start, text=text)
     else:
         mes = config.adminMessage["messages_missing"]
     await message.answer(mes)
@@ -206,10 +210,9 @@ async def menu_info_mes(mesID, message):
     keyboard = None
     if messageInfo["code"] == 200:
         messageInfo = messageInfo["data"]
-        mes = config.adminMessage["message_detailed_info"].format(id=messageInfo["id"], userID=messageInfo["userID"], text=messageInfo["message"],
-                                                                  date=datetime.utcfromtimestamp(
-                                                                      messageInfo["date"]).strftime(
-                                                                      '%Y-%m-%d %H:%M:%S'))
+        mes = config.adminMessage["message_detailed_info"].format(id=messageInfo["id"], userID=messageInfo["userID"],
+                                                                  text=messageInfo["message"],
+                                                                  date=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(messageInfo["date"])))
         mes += "Сообщение от " + ("пользователя с заказом" if messageInfo["isOrder"] else "обычного пользователя")
         mes += "" if messageInfo["active"] else "\n<b>На сообщение уже ответили</b>"
         keyboard = buttons.getActionKeyboard(messageInfo["id"], MessageSend="Ответить") if messageInfo[
