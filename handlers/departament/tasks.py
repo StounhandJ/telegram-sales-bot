@@ -1,6 +1,4 @@
-import asyncio
 import os
-import time
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -12,14 +10,13 @@ from loader import dp, bot
 from states.staff_task_complete import TaskComplete
 from utils.db_api.models import departmentModel, tasksModel, tasksCompletesModel, orderModel
 from utils import function
-from utils.yandex_disk import YandexDisk
 
 
 @dp.message_handler(commands=["task_list"])
 async def close_order(message: types.Message):
     staffs = departmentModel.get_all_staffs()
     if message.from_user.id in staffs:
-        mes, keyboard = menu_edit_promoCode(message.from_user.id)
+        mes, keyboard = menu_tasks_list(message.from_user.id)
         await message.answer(text=mes, reply_markup=keyboard)
 
 
@@ -120,26 +117,19 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
         tasksCompletesModel.create_task_complete(call.from_user.id, data.get("orderID"), userDepartment,
                                                  data.get("description"), [data.get("document").file_id])
         tasksModel.del_task_duplicate(call.from_user.id, userDepartment, data.get("orderID"))
-        # Отправка фала на диск #
-        if not os.path.exists("documents"):
-            os.makedirs("documents")
-        start = time.time()
+        # Сохранение файла на диске #
+        if not os.path.exists(f"documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}"):
+            os.makedirs(f"documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}")
         file_info = await bot.get_file(
             file_id=data.get("document").file_id)
         file_extension = os.path.splitext(file_info.file_path)[1]
         file_name = data.get("document").file_name.split(".")[0]
         file = await bot.download_file(file_path=file_info.file_path)
-        with open(f'documents/{file_name}{file_extension}', 'wb') as new_file:
+        with open(f'documents/{userDepartmentName}/{call.from_user.id}/{data.get("orderID")}/{file_name}{file_extension}', 'wb') as new_file:
             new_file.write(file.read())
-        print(time.time()-start)
-        start = time.time()
-        YandexDisk.add_file(call.from_user.id, userDepartmentName, data.get("orderID"),
-                            f'{os.getcwd()}/documents/{file_name}{file_extension}')
-        print(time.time() - start)
-        os.remove(f'documents/{file_name}{file_extension}')
         # ---------------------- #
         await state.finish()
-        mes, keyboard = menu_edit_promoCode(call.from_user.id)
+        mes, keyboard = menu_tasks_list(call.from_user.id)
         await call.message.edit_text(text=mes, reply_markup=keyboard)
         await call.message.answer(text=config.departmentMessage["task_send"])
         return
@@ -167,13 +157,13 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=TaskComplete)
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    mes, keyboard = menu_edit_promoCode(call.from_user.id)
+    mes, keyboard = menu_tasks_list(call.from_user.id)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(action_callback.filter(what_action="departmentTaskCancel"))
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
-    mes, keyboard = menu_edit_promoCode(call.from_user.id)
+    mes, keyboard = menu_tasks_list(call.from_user.id)
     if call.message.document is None:
         await call.message.edit_text(text=mes, reply_markup=keyboard)
     else:
@@ -186,7 +176,7 @@ def check_tasks(staffID, orderID):
     return response["code"] == 200 and orderID in [task["orderID"] for task in response["data"]]
 
 
-def menu_edit_promoCode(userID):
+def menu_tasks_list(userID):
     tasks = tasksModel.get_user_tasks(userID)
     mes = config.departmentMessage["task_list_missing"]
     keyboard = None
@@ -194,6 +184,6 @@ def menu_edit_promoCode(userID):
     if tasks["code"] == 200:
         mes = config.departmentMessage["task_main"]
         for number, task in enumerate(tasks["data"]):
-            keyboard_info[config.departmentMessage["task_button"].format(task["orderID"])] = task["id"]
+            keyboard_info[config.departmentMessage["task_button"].format(task["orderID"], task["departmentTag"])] = task["id"]
         keyboard = buttons.getAuxiliaryOrdersKeyboard("departmentTaskOrder", keyboard_info)
     return [mes, keyboard]

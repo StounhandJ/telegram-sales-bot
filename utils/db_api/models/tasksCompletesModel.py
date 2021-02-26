@@ -25,6 +25,14 @@ def get_all_tasks_completes():
     return response
 
 
+def get_time_tasks_completes(startTime, endTime):
+    response = DataBase.request(
+        "SELECT `id`, `userID`, `orderID`, `departmentTag`, `message`, `document`, `date` FROM `tasks_completes` WHERE `date`>%(startTime)s AND `date`<%(endTime)s",
+        {"startTime": startTime, "endTime": endTime})
+    response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
+    return response
+
+
 def get_user_tasks_completes(userID):
     response = DataBase.request(
         "SELECT `id`, `userID`, `orderID`, `departmentTag`, `message`, `document`, `date` FROM `tasks_completes` WHERE `userID`=%(userID)s",

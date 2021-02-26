@@ -15,7 +15,7 @@ DISK_LOGIN = env.str("DISK_LOGIN")
 DISK_PASSWORD_APP = env.str("DISK_PASSWORD_APP")
 
 discount_full_payment = 5  # Скидка при полной оплате сразу
-
+backup_time = 5  # Скидка при полной оплате сразу
 
 works = {"Курсовая": {
         "description": "Цена работы может варьироваться от 3000 р.\nЖелательно предоставление методических материалов по КП.",
@@ -166,7 +166,7 @@ adminMessage = {
 departmentMessage = {
     "task_list_missing": "У вас нет задач",
     "task_main": "Список ваших задач:\n",
-    "task_button": "Заказ номер {}",
+    "task_button": "Заказ номер {} отдел {}",
     "task_info": "Номер заказа <b>{orderID}</b>\nКоментарий к заказу: {description}\nКоментарий от админа: {descriptionA}",
     "task_add_comment": "Напишите коментарий к работе:",
     "task_add_document": "Прикрепите документ или архив с работой",

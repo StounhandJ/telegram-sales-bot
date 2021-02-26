@@ -1,4 +1,3 @@
-import os
 import time
 
 from YaDiskClient.YaDiskClient import YaDisk
@@ -73,8 +72,7 @@ class YandexDiskClass:
 
     def add_file(self, stafferID, departmentName, orderID, file):
         if not self.get_department(departmentName):
-            print(f"YandexDisk Error: <{departmentName}> Данный отдел не создан")
-            return
+            self.mkdir_department(departmentName)
         if not self.get_staffer(stafferID, departmentName):
             self.mkdir_staffer(stafferID, departmentName)
         if not self.get_order_staffer(orderID, stafferID, departmentName):
