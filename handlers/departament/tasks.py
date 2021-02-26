@@ -118,14 +118,14 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
                                                  data.get("description"), [data.get("document").file_id])
         tasksModel.del_task_duplicate(call.from_user.id, userDepartment, data.get("orderID"))
         # Сохранение файла на диске #
-        if not os.path.exists(f"documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}"):
-            os.makedirs(f"documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}")
+        if not os.path.exists(f"{os.getcwd()}documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}"):
+            os.makedirs(f"{os.getcwd()}/documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}")
         file_info = await bot.get_file(
             file_id=data.get("document").file_id)
         file_extension = os.path.splitext(file_info.file_path)[1]
         file_name = data.get("document").file_name.split(".")[0]
         file = await bot.download_file(file_path=file_info.file_path)
-        with open(f'documents/{userDepartmentName}/{call.from_user.id}/{data.get("orderID")}/{file_name}{file_extension}', 'wb') as new_file:
+        with open(f'{os.getcwd()}/documents/{userDepartmentName}/{call.from_user.id}/{data.get("orderID")}/{file_name}{file_extension}', 'wb') as new_file:
             new_file.write(file.read())
         # ---------------------- #
         await state.finish()

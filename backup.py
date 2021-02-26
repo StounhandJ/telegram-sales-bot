@@ -21,17 +21,17 @@ def backup():
             departments = os.listdir("documents")
             for department in departments:
                 if len(department.split(".")) == 1:
-                    users = os.listdir(f"documents/{department}")
+                    users = os.listdir(f"{os.getcwd()}/documents/{department}")
                     for userID in users:
                         if len(userID.split(".")) == 1:
-                            orders_user = os.listdir(f"documents/{department}/{userID}")
+                            orders_user = os.listdir(f"{os.getcwd()}/documents/{department}/{userID}")
                             for orderID in orders_user:
                                 if len(orderID.split(".")) == 1:
-                                    files = os.listdir(f"documents/{department}/{userID}/{orderID}")
+                                    files = os.listdir(f"{os.getcwd()}/documents/{department}/{userID}/{orderID}")
                                     for file in files:
                                         if len(file.split(".")) != 1:
                                             YandexDisk.add_file(userID, department, orderID,
                                                                 f'{os.getcwd()}/documents/{department}/{userID}/{orderID}/{file}')
-                            shutil.rmtree(f'documents/{department}/{userID}')
+                            shutil.rmtree(f'{os.getcwd()}/documents/{department}/{userID}')
             log(f"Перенос фалов закончился за {int(time.time() - date)} секунд")
         time.sleep(60*20)
