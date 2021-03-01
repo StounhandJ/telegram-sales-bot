@@ -25,12 +25,12 @@ async def show_menu(message: types.Message):
 
 @dp.message_handler(commands=["items"])
 async def show_menu(message: types.Message):
-    await message.answer(config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
+    await message.answer(config.message["Product_Menu"], reply_markup=await buttons.getTypeWorkKeyboard())
 
 
 @dp.message_handler(Text(equals=["Список предметов"]))
 async def show_product(message: types.Message):
-    await message.answer(config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
+    await message.answer(config.message["Product_Menu"], reply_markup=await buttons.getTypeWorkKeyboard())
 
 
 @dp.message_handler(commands=["about"])

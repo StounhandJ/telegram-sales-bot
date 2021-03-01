@@ -1,3 +1,4 @@
+import math
 import time
 
 from aiogram import types
@@ -6,7 +7,7 @@ from aiogram.dispatcher.filters.builtin import Text
 
 from data import config
 from keyboards.inline import buttons
-from keyboards.inline.callback_datas import confirmation_callback, action_callback
+from keyboards.inline.callback_datas import confirmation_callback, action_callback, numbering_callback
 from loader import dp, bot
 from states.admin_mes_user import AdminMesUser
 from utils.db_api.models import messagesModel
@@ -15,48 +16,32 @@ from utils import function
 
 @dp.message_handler(Text(equals=["Сообщения от заказчиков", "/mesOrder"]), user_id=config.ADMINS)
 async def order_messages(message: types.Message):
-    months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
-              "Ноябрь", "Декабрь"]
-    messages = messagesModel.get_order_messages()
-    if messages["code"] == 200:
-        start = config.adminMessage["messages_main_order"]
-        text = ""
-        num = 1
-        for item in messages["data"]:
-            date = time.localtime(item["date"])
-            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
-                                                                     month=months[date.tm_mon - 1],
-                                                                     hour=date.tm_hour,
-                                                                     min=time.strftime("%H:%M", date))
-            text += config.adminMessage["messages_info"].format(num=num, id=item["id"], date=dateMes)
-            num += 1
-        mes = config.adminMessage["messages_main"].format(start=start, text=text)
-    else:
-        mes = config.adminMessage["messages_missing"]
-    await message.answer(mes)
+    mes, keyboard = await menu_main(0, True)
+    await message.answer(text=mes, reply_markup=keyboard)
+
+
+@dp.callback_query_handler(numbering_callback.filter(what_action="messagesClientNumbering"), user_id=config.ADMINS)
+async def close_order_button(call: types.CallbackQuery, callback_data: dict):
+    mes, keyboard = await menu_main(int(callback_data["number"]), True)
+    try:
+        await call.message.edit_text(text=mes, reply_markup=keyboard)
+    except:
+        await call.answer(cache_time=1)
 
 
 @dp.message_handler(Text(equals=["Сообщения от пользователей", "/mesUser"]), user_id=config.ADMINS)
 async def all_messages(message: types.Message):
-    months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
-              "Ноябрь", "Декабрь"]
-    messages = messagesModel.get_all_messages()
-    if messages["code"] == 200:
-        start = config.adminMessage["messages_main_all"]
-        text = ""
-        num = 1
-        for item in messages["data"]:
-            date = time.localtime(item["date"])
-            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
-                                                              month=months[date.tm_mon - 1],
-                                                              hour=date.tm_hour,
-                                                              min=time.strftime("%H:%M", date))
-            text += config.adminMessage["messages_info"].format(num=num, id=item["id"], date=dateMes)
-            num += 1
-        mes = config.adminMessage["messages_main"].format(start=start, text=text)
-    else:
-        mes = config.adminMessage["messages_missing"]
-    await message.answer(mes)
+    mes, keyboard = await menu_main(0, False)
+    await message.answer(text=mes, reply_markup=keyboard)
+
+
+@dp.callback_query_handler(numbering_callback.filter(what_action="messagesUserNumbering"), user_id=config.ADMINS)
+async def close_order_button(call: types.CallbackQuery, callback_data: dict):
+    mes, keyboard = await menu_main(int(callback_data["number"]), False)
+    try:
+        await call.message.edit_text(text=mes, reply_markup=keyboard)
+    except:
+        await call.answer(cache_time=1)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["mesinfo", "infomes"])
@@ -83,7 +68,7 @@ async def adding_comment(message: types.Message, state: FSMContext):
     await state.update_data(message=message.text)
     await AdminMesUser.wait.set()
     await message.answer(config.message["comment_confirmation"].format(text=message.text),
-                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
+                         reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=AdminMesUser.wait)
@@ -97,7 +82,7 @@ async def message_add_doc(message: types.Message, state: FSMContext):
     await AdminMesUser.wait.set()
     await message.answer(config.message["document_confirmation"].format(
         text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
-        reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
+        reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=AdminMesUser.document, content_types=types.ContentType.PHOTO)
@@ -129,11 +114,11 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
     elif "AdminMesUser:documentCheck" == state_active:
         await AdminMesUser.document.set()
         mes = config.message["comment_document"]
-        keyboard = buttons.getCustomKeyboard(noElement="Нет файла")
+        keyboard = await buttons.getCustomKeyboard(noElement="Нет файла")
     elif "AdminMesUser:message" == state_active:
         await AdminMesUser.documentCheck.set()
         mes = config.message["comment_documentCheck"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить")
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
@@ -142,7 +127,7 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
 async def adding_comment_no(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     state_active = data.get("state_active")
-    keyboard = buttons.getCustomKeyboard(cancel="Отменить")
+    keyboard = await buttons.getCustomKeyboard(cancel="Отменить")
     if "AdminMesUser:document" == state_active:
         await AdminMesUser.document.set()
     elif "AdminMesUser:documentCheck" == state_active:
@@ -200,7 +185,7 @@ async def menu_send_mes(mesID, message, state):
         await AdminMesUser.message.set()
         await function.set_state_active(state)
         mes = config.adminMessage["message_send"]
-        keyboard = buttons.getCustomKeyboard(cancel="Отмена")
+        keyboard = await buttons.getCustomKeyboard(cancel="Отмена")
     await message.answer(text=mes, reply_markup=keyboard)
 
 
@@ -212,10 +197,12 @@ async def menu_info_mes(mesID, message):
         messageInfo = messageInfo["data"]
         mes = config.adminMessage["message_detailed_info"].format(id=messageInfo["id"], userID=messageInfo["userID"],
                                                                   text=messageInfo["message"],
-                                                                  date=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(messageInfo["date"])))
+                                                                  date=time.strftime('%Y-%m-%d %H:%M:%S',
+                                                                                     time.localtime(
+                                                                                         messageInfo["date"])))
         mes += "Сообщение от " + ("пользователя с заказом" if messageInfo["isOrder"] else "обычного пользователя")
         mes += "" if messageInfo["active"] else "\n<b>На сообщение уже ответили</b>"
-        keyboard = buttons.getActionKeyboard(messageInfo["id"], MessageSend="Ответить") if messageInfo[
+        keyboard = await buttons.getActionKeyboard(messageInfo["id"], MessageSend="Ответить") if messageInfo[
             "active"] else None
         if len(messageInfo["document"]) == 1:
             await message.answer_document(caption=mes, document=messageInfo["document"][0], reply_markup=keyboard)
@@ -224,3 +211,27 @@ async def menu_info_mes(mesID, message):
             for document in messageInfo["document"]:
                 await message.answer_document(document=document)
     await message.answer(text=mes, reply_markup=keyboard)
+
+
+async def menu_main(page, IsClient):
+    messages = messagesModel.get_client_messages(page=page, max_size_messages=config.max_size_messages) if IsClient else messagesModel.get_user_messages(
+        page=page, max_size_messages=config.max_size_messages)
+    messages_count = messagesModel.get_client_messages_count() if IsClient else messagesModel.get_user_messages_count()
+    keyboard = None
+    if messages["code"] == 200:
+        start = config.adminMessage["messages_main_order"] if IsClient else config.adminMessage["messages_main_all"]
+        text = ""
+        num = 1
+        for item in messages["data"]:
+            date = time.localtime(item["date"])
+            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
+                                                              month=config.months[date.tm_mon - 1],
+                                                              hour=date.tm_hour,
+                                                              min=time.strftime("%H:%M", date))
+            text += config.adminMessage["messages_info"].format(num=num+(page*config.max_size_messages), id=item["id"], date=dateMes)
+            num += 1
+        mes = config.adminMessage["messages_main"].format(start=start, text=text)
+        keyboard = await buttons.getNumbering(math.ceil(messages_count/config.max_size_messages), "messagesClientNumbering" if IsClient else "messagesUserNumbering")
+    else:
+        mes = config.adminMessage["messages_missing"]
+    return [mes, keyboard]

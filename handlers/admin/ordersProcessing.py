@@ -1,4 +1,5 @@
 import hashlib
+import math
 import time
 
 from aiogram import types
@@ -7,7 +8,7 @@ from aiogram.dispatcher.filters.builtin import Text
 
 from data import config
 from keyboards.inline import buttons
-from keyboards.inline.callback_datas import confirmation_callback, action_callback
+from keyboards.inline.callback_datas import confirmation_callback, action_callback, numbering_callback
 from loader import dp, bot
 from states.admin_close_order_pr import AdminCloseOrderPr
 from states.admin_price_order import AdminPriceOrder
@@ -17,24 +18,17 @@ from utils import function
 
 @dp.message_handler(Text(equals=["Заказы на рассмотрении", "/orderspr"]), user_id=config.ADMINS)
 async def show_orders(message: types.Message):
-    months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
-              "Ноябрь", "Декабрь"]
-    orders = ordersProcessingModel.get_ALLOrders_provisional()
-    if orders["code"] == 200:
-        text = ""
-        num = 1
-        for item in orders["data"]:
-            date = time.localtime(item["date"])
-            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
-                                                                     month=months[date.tm_mon - 1],
-                                                                     hour=date.tm_hour,
-                                                                     min=time.strftime("%H:%M", date))
-            text += config.adminMessage["order_info"].format(num=num, orderID=item["id"], date=dateMes)
-            num += 1
-        mes = config.adminMessage["ordersPR_main"].format(text=text)
-    else:
-        mes = config.adminMessage["orders_missing"]
-    await message.answer(mes)
+    mes, keyboard = await menu_main(0)
+    await message.answer(text=mes, reply_markup=keyboard)
+
+
+@dp.callback_query_handler(numbering_callback.filter(what_action="OrderProcessingNumbering"), user_id=config.ADMINS)
+async def close_order_button(call: types.CallbackQuery, callback_data: dict):
+    mes, keyboard = await menu_main(int(callback_data["number"]))
+    try:
+        await call.message.edit_text(text=mes, reply_markup=keyboard)
+    except:
+        await call.answer(cache_time=1)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["infopr"])
@@ -59,7 +53,7 @@ async def send_order_price(message: types.Message, state: FSMContext):
         await state.update_data(price=message.text)
         await AdminPriceOrder.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["price_confirmation"],
-                             reply_markup=buttons.getConfirmationKeyboard())
+                             reply_markup=await buttons.getConfirmationKeyboard())
     else:
         await message.answer(text="Вы ввели не число")
 
@@ -78,12 +72,13 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
             int(data.get("price")) / 100 * order["discount"] if order["percent"] and order["discount"] != 0 else order[
                 "discount"])
         amount = int(amount)
-        amount = amount if order["separate_payment"] else int(amount-(amount/100*config.discount_full_payment))
+        amount = amount if order["separate_payment"] else int(amount - (amount / 100 * config.discount_full_payment))
         if amount < 100:
             await state.finish()
             await call.message.edit_text("Вышла сумма меньше 100р.\nОтправка отменена")
             return
-        PRICE = types.LabeledPrice(label="Работа на заказ", amount=(int(amount/2) if order["separate_payment"] else amount) * 100)
+        PRICE = types.LabeledPrice(label="Работа на заказ",
+                                   amount=(int(amount / 2) if order["separate_payment"] else amount) * 100)
         secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
         await bot.send_invoice(
             chat_id=order["userID"],
@@ -96,7 +91,8 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
             start_parameter='time-machine-example',
             payload=secret_key.hexdigest()
         )
-        paymentModel.create_payment(call.from_user.id, order["text"], order["document"], order["separate_payment"], amount,
+        paymentModel.create_payment(call.from_user.id, order["text"], order["document"], order["separate_payment"],
+                                    amount,
                                     secret_key.hexdigest(), False)
         ordersProcessingModel.updateActive_order(data.get("orderID"))
         mes = config.adminMessage["message_yes_send"]
@@ -138,7 +134,7 @@ async def close_order_text(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
     await state.update_data(text=message.text)
     await AdminCloseOrderPr.wait.set()
-    await message.answer(config.adminMessage["order_close_confirm"], reply_markup=buttons.getConfirmationKeyboard())
+    await message.answer(config.adminMessage["order_close_confirm"], reply_markup=await buttons.getConfirmationKeyboard())
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminCloseOrderPr.wait)
@@ -183,7 +179,7 @@ async def menu_send_order(orderID, message, state):
         await state.update_data(orderID=order["data"]["id"])
         await AdminPriceOrder.price.set()
         mes = config.adminMessage["price_send"]
-        keyboard = buttons.getCustomKeyboard(cancel="Отмена")
+        keyboard = await buttons.getCustomKeyboard(cancel="Отмена")
     await message.answer(text=mes, reply_markup=keyboard)
 
 
@@ -197,7 +193,7 @@ async def menu_close_order(orderID, message, state):
         await state.update_data(orderID=order["data"]["id"])
         await AdminCloseOrderPr.message.set()
         mes = config.adminMessage["order_close_text"]
-        keyboard = buttons.getCustomKeyboard(cancel="Отмена")
+        keyboard = await buttons.getCustomKeyboard(cancel="Отмена")
     await message.answer(text=mes, reply_markup=keyboard)
 
 
@@ -213,10 +209,11 @@ async def menu_info_order(orderID, message):
                                                                        "%" if order["percent"] else " р."),
                                                                    payment="по частям" if order[
                                                                        "separate_payment"] else " целиком",
-                                                                   date=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(order["date"])))
+                                                                   date=time.strftime('%Y-%m-%d %H:%M:%S',
+                                                                                      time.localtime(order["date"])))
         mes += "" if order["active"] else "<b>Заказ выполнен</b>"
-        keyboard = buttons.getActionKeyboard(order["id"], OrderProcessingSend="Отправить форму оплаты",
-                                             OrderProcessingCloser="Отказать") if order["active"] else None
+        keyboard = await buttons.getActionKeyboard(order["id"], OrderProcessingSend="Отправить форму оплаты",
+                                                   OrderProcessingCloser="Отказать") if order["active"] else None
         if len(order["document"]) == 1:
             await message.answer_document(caption=mes, document=order["document"][0], reply_markup=keyboard)
             return
@@ -224,3 +221,27 @@ async def menu_info_order(orderID, message):
             for document in order["document"]:
                 await message.answer_document(document=document)
     await message.answer(text=mes, reply_markup=keyboard)
+
+
+async def menu_main(page):
+    orders = ordersProcessingModel.get_orders_provisional(page, config.max_size_order_provisional)
+    orders_count = ordersProcessingModel.get_ALLOrders_provisional_count()
+    keyboard = None
+    if orders["code"] == 200:
+        text = ""
+        num = 1
+        for item in orders["data"]:
+            date = time.localtime(item["date"])
+            dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
+                                                              month=config.months[date.tm_mon - 1],
+                                                              hour=date.tm_hour,
+                                                              min=time.strftime("%H:%M", date))
+            text += config.adminMessage["order_info"].format(num=num + (page * config.max_size_order_provisional),
+                                                             orderID=item["id"], date=dateMes)
+            num += 1
+        mes = config.adminMessage["ordersPR_main"].format(text=text)
+        keyboard = await buttons.getNumbering(math.ceil(orders_count / config.max_size_order_provisional),
+                                              "OrderProcessingNumbering")
+    else:
+        mes = config.adminMessage["orders_missing"]
+    return mes, keyboard

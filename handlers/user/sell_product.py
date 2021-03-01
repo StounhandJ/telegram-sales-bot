@@ -15,23 +15,23 @@ from utils import function
 @dp.callback_query_handler(type_work_callback.filter(work="other_works"))
 async def diploma_info(call: types.CallbackQuery):
     await call.message.edit_text(text="Другие работы",
-                                 reply_markup=buttons.getOtherWorks())
+                                 reply_markup=await buttons.getOtherWorks())
 
 
 @dp.callback_query_handler(type_work_callback.filter(work="back"))
 async def diploma_info(call: types.CallbackQuery):
-    await call.message.edit_text(text=config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
+    await call.message.edit_text(text=config.message["Product_Menu"], reply_markup=await buttons.getTypeWorkKeyboard())
 
 
 @dp.callback_query_handler(type_work_callback.filter())
 async def diploma_info(call: types.CallbackQuery, callback_data: dict):
     await call.message.edit_text(text=config.works[callback_data["work"]]["description"],
-                                 reply_markup=buttons.getSellWorkKeyboard(callback_data["work"]))
+                                 reply_markup=await buttons.getSellWorkKeyboard(callback_data["work"]))
 
 
 @dp.callback_query_handler(setting_callback.filter(command="exit"))
 async def product_info_exit(call: types.CallbackQuery, state: FSMContext):
-    await call.message.edit_text(config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
+    await call.message.edit_text(config.message["Product_Menu"], reply_markup=await buttons.getTypeWorkKeyboard())
 
 
 @dp.callback_query_handler(setting_callback.filter(command="continue"))
@@ -44,7 +44,7 @@ async def start_buy_product(call: types.CallbackQuery, callback_data: dict, stat
     await SellInfo.description.set()
     await function.set_state_active(state)
     await call.message.edit_text(config.works[callback_data["type"]]["template"],
-                                 reply_markup=buttons.getCustomKeyboard(cancel="Отменить заказ"))
+                                 reply_markup=await buttons.getCustomKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.description)
@@ -53,7 +53,7 @@ async def adding_comment(message: types.Message, state: FSMContext):
     await state.update_data(description=message.text)
     await SellInfo.wait.set()
     await message.answer(config.message["comment_confirmation"].format(text=message.text),
-                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+                         reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.email)
@@ -64,10 +64,10 @@ async def adding_comment(message: types.Message, state: FSMContext):
         await state.update_data(email=message.text)
         await SellInfo.wait.set()
         await message.answer(config.message["email_confirmation"].format(text=message.text),
-                             reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+                             reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
     else:
         await message.answer(config.message["comment_email_no_validation"].format(text=message.text),
-                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить заказ"))
+                             reply_markup=await buttons.getCustomKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.wait)
@@ -81,7 +81,7 @@ async def message_add_doc(message: types.Message, state: FSMContext):
     await SellInfo.wait.set()
     await message.answer(config.message["document_confirmation"].format(
         text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
-        reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+        reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.document, content_types=types.ContentType.PHOTO)
@@ -104,7 +104,7 @@ async def adding_promoCode(message: types.Message, state: FSMContext):
         await message.answer(config.message["promoCode_confirmation"].format(name=code["name"],
                                                                              discount=str(code["discount"]) + (
                                                                                  "%" if code["percent"] else " р.")),
-                             reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+                             reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
     else:
         await message.answer(config.message["code_missing"])
 
@@ -119,12 +119,12 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
         await SellInfo.separatePayment.set()
         await function.set_state_active(state)
         mes = config.message["separatePayment"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:document" == state_active:
         await SellInfo.promoCodeCheck.set()
         await function.set_state_active(state)
         mes = config.message["comment_promoCodeCheck"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
@@ -141,29 +141,29 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
     elif "SellInfo:promoCode" == state_active:
         await SellInfo.separatePayment.set()
         mes = config.message["separatePayment"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:promoCodeCheck" == state_active:
         await SellInfo.promoCode.set()
         mes = config.message["comment_promoCode"]
-        keyboard = buttons.getCustomKeyboard(noElement="Нет промокода")
+        keyboard = await buttons.getCustomKeyboard(noElement="Нет промокода")
     elif "SellInfo:document" == state_active:
         await SellInfo.promoCodeCheck.set()
         mes = config.message["comment_promoCodeCheck"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:documentCheck" == state_active:
         await SellInfo.document.set()
         mes = config.message["comment_document"]
-        keyboard = buttons.getCustomKeyboard(noElement="Нет файла")
+        keyboard = await buttons.getCustomKeyboard(noElement="Нет файла")
     elif "SellInfo:email" == state_active:
         await SellInfo.documentCheck.set()
         description = data["type_work"] + "\n\n" + data.get("description")
         await state.update_data(description=description)
         mes = config.message["comment_documentCheck"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:description" == state_active:
         await SellInfo.email.set()
         mes = config.message["comment_email"]
-        keyboard = buttons.getCustomKeyboard(cancel="Отменить заказ")
+        keyboard = await buttons.getCustomKeyboard(cancel="Отменить заказ")
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
@@ -173,7 +173,7 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
     data = await state.get_data()
     state_active = data.get("state_active")
     mes = config.message["comment_confirmation_no"]
-    keyboard = buttons.getCustomKeyboard(cancel="Отменить заказ")
+    keyboard = await buttons.getCustomKeyboard(cancel="Отменить заказ")
     if "SellInfo:promoCode" == state_active:
         await SellInfo.promoCode.set()
     elif "SellInfo:document" == state_active:
@@ -185,11 +185,11 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
     elif "SellInfo:documentCheck" == state_active:
         await SellInfo.promoCodeCheck.set()
         mes = config.message["comment_promoCodeCheck"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:promoCodeCheck" == state_active:
         await SellInfo.separatePayment.set()
         mes = config.message["separatePayment"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить заказ")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:separatePayment" == state_active:
         await state.update_data(separatePayment=True)
         await create_order(call, state)
@@ -201,7 +201,7 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=SellInfo)
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await call.message.edit_text(config.message["Product_Menu"], reply_markup=buttons.getTypeWorkKeyboard())
+    await call.message.edit_text(config.message["Product_Menu"], reply_markup=await buttons.getTypeWorkKeyboard())
 
 
 async def create_order(call, state):

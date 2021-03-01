@@ -18,10 +18,17 @@ def get_order_provisional(id):
         {"id": id})
 
 
-def get_ALLOrders_provisional():
-    response = DataBase.request("SELECT `id`,`userID`,`date` FROM `orders_processing` WHERE `active`=1")
+def get_orders_provisional(page=0, max_size=10):
+    response = DataBase.request(
+        "SELECT `id`,`userID`,`date` FROM `orders_processing` WHERE `active`=1 AND`active`=1 LIMIT %(page)s,%(max_size)s",
+        {"page": page * max_size, "max_size": max_size})
     response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
     return response
+
+
+def get_ALLOrders_provisional_count():
+    response = DataBase.request("SELECT COUNT(`id`) AS 'count' FROM `orders_processing` WHERE `active`=1")
+    return response["data"]["count"] if response["code"] == 200 else 0
 
 
 def updateActive_order(id):

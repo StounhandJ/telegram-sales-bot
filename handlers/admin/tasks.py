@@ -1,7 +1,11 @@
+import math
+
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 
 from data import config
+from keyboards.inline import buttons
+from keyboards.inline.callback_datas import numbering_callback
 from loader import dp, bot
 from utils.db_api.models import departmentModel, tasksModel, tasksCompletesModel, orderModel
 from utils import function
@@ -46,19 +50,17 @@ async def start_edit_code(message: types.Message, state: FSMContext):
 
 @dp.message_handler(user_id=config.ADMINS, commands=["task_listA"])
 async def close_order(message: types.Message, state: FSMContext):
-    tasks = tasksModel.get_all_tasks()
-    mes = config.adminMessage["task_list_missing"]
-    if tasks["code"] == 200:
-        text = ""
-        tasksOrder = {}
-        for task in tasks["data"]:
-            tasksOrder[task["orderID"]] = tasksOrder[task["orderID"]] + len(task["staff"]) if task[
-                                                                                                  "orderID"] in tasksOrder.keys() else len(
-                task["staff"])
-        for order, staff in tasksOrder.items():
-            text += config.adminMessage["task_list_info"].format(orderID=order, staff=staff)
-        mes = config.adminMessage["task_list_main"].format(text=text)
-    await message.answer(mes)
+    mes, keyboard = await menu_task_list(0)
+    await message.answer(text=mes, reply_markup=keyboard)
+
+
+@dp.callback_query_handler(numbering_callback.filter(what_action="TasksNumbering"), user_id=config.ADMINS)
+async def close_order_button(call: types.CallbackQuery, callback_data: dict):
+    mes, keyboard = await menu_task_list(int(callback_data["number"]))
+    try:
+        await call.message.edit_text(text=mes, reply_markup=keyboard)
+    except:
+        await call.answer(cache_time=1)
 
 
 @dp.message_handler(user_id=config.ADMINS, commands=["all_result"])
@@ -70,10 +72,29 @@ async def close_order(message: types.Message, state: FSMContext):
         documents = []
         for number, task in enumerate(result["data"]):
             user = await bot.get_chat(task["userID"])
-            text += config.adminMessage["task_result_info"].format(number=number + 1, department=task["departmentTag"], user=user.full_name,
-                                     userID=task["userID"])
+            text += config.adminMessage["task_result_info"].format(number=number + 1, department=task["departmentTag"],
+                                                                   user=user.full_name,
+                                                                   userID=task["userID"])
             documents += task["document"]
         for document in documents:
             await message.answer_document(document=document)
         mes = config.adminMessage["task_result_main"].format(text=text)
     await message.answer(mes)
+
+
+async def menu_task_list(page):
+    mes = config.adminMessage["task_list_missing"]
+    keyboard = None
+    tasks = tasksModel.get_tasks(page, config.max_size_task)
+    tasks_count = tasksModel.get_tasks_count()
+    if tasks["code"] == 200:
+        text = ""
+        tasksOrder = {}
+        for task in tasks["data"]:
+            tasksOrder[task["orderID"]] = tasksOrder[task["orderID"]] + len(task["staff"]) if task["orderID"] in tasksOrder.keys() else len(
+                task["staff"])
+        for order, staff in tasksOrder.items():
+            text += config.adminMessage["task_list_info"].format(orderID=order, staff=staff)
+        mes = config.adminMessage["task_list_main"].format(text=text)
+        keyboard = await buttons.getNumbering(math.ceil(tasks_count / config.max_size_task), "TasksNumbering")
+    return mes, keyboard

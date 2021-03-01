@@ -16,7 +16,7 @@ from utils import function
 async def close_order(message: types.Message):
     staffs = departmentModel.get_all_staffs()
     if message.from_user.id in staffs:
-        mes, keyboard = menu_tasks_list(message.from_user.id)
+        mes, keyboard = await menu_tasks_list(message.from_user.id)
         await message.answer(text=mes, reply_markup=keyboard)
 
 
@@ -61,7 +61,7 @@ async def close_order(call: types.CallbackQuery, state: FSMContext, callback_dat
             return
         order = orderModel.get_order(task["data"]["orderID"])
         if order["code"] == 200:
-            keyboard = buttons.getCustomKeyboard(cancel="Отменить")
+            keyboard = await buttons.getCustomKeyboard(cancel="Отменить")
             mes = config.departmentMessage["task_add_comment"]
             await state.update_data(orderID=order["data"]["id"], taskID=task["data"]["id"])
             await TaskComplete.description.set()
@@ -80,7 +80,7 @@ async def adding_comment(message: types.Message, state: FSMContext):
     await state.update_data(description=message.text)
     await TaskComplete.wait.set()
     await message.answer(config.message["comment_confirmation"].format(text=message.text),
-                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
+                         reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=TaskComplete.wait)
@@ -94,7 +94,7 @@ async def message_add_doc(message: types.Message, state: FSMContext):
     await TaskComplete.wait.set()
     await message.answer(config.message["document_confirmation"].format(
         text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
-        reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
+        reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=TaskComplete)
@@ -118,7 +118,7 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
                                                  data.get("description"), [data.get("document").file_id])
         tasksModel.del_task_duplicate(call.from_user.id, userDepartment, data.get("orderID"))
         # Сохранение файла на диске #
-        if not os.path.exists(f"{os.getcwd()}documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}"):
+        if not os.path.exists(f"{os.getcwd()}/documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}"):
             os.makedirs(f"{os.getcwd()}/documents/{userDepartmentName}/{call.from_user.id}/{data.get('orderID')}")
         file_info = await bot.get_file(
             file_id=data.get("document").file_id)
@@ -129,14 +129,14 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
             new_file.write(file.read())
         # ---------------------- #
         await state.finish()
-        mes, keyboard = menu_tasks_list(call.from_user.id)
+        mes, keyboard = await menu_tasks_list(call.from_user.id)
         await call.message.edit_text(text=mes, reply_markup=keyboard)
         await call.message.answer(text=config.departmentMessage["task_send"])
         return
     elif "TaskComplete:description" == state_active:
         await TaskComplete.document.set()
         mes = config.departmentMessage["task_add_document"]
-        keyboard = buttons.getCustomKeyboard(cancel="Отменить")
+        keyboard = await buttons.getCustomKeyboard(cancel="Отменить")
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
@@ -157,13 +157,13 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=TaskComplete)
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    mes, keyboard = menu_tasks_list(call.from_user.id)
+    mes, keyboard = await menu_tasks_list(call.from_user.id)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(action_callback.filter(what_action="departmentTaskCancel"))
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
-    mes, keyboard = menu_tasks_list(call.from_user.id)
+    mes, keyboard = await menu_tasks_list(call.from_user.id)
     if call.message.document is None:
         await call.message.edit_text(text=mes, reply_markup=keyboard)
     else:
@@ -176,7 +176,7 @@ def check_tasks(staffID, orderID):
     return response["code"] == 200 and orderID in [task["orderID"] for task in response["data"]]
 
 
-def menu_tasks_list(userID):
+async def menu_tasks_list(userID):
     tasks = tasksModel.get_user_tasks(userID)
     mes = config.departmentMessage["task_list_missing"]
     keyboard = None
@@ -185,5 +185,5 @@ def menu_tasks_list(userID):
         mes = config.departmentMessage["task_main"]
         for number, task in enumerate(tasks["data"]):
             keyboard_info[config.departmentMessage["task_button"].format(task["orderID"], task["departmentTag"])] = task["id"]
-        keyboard = buttons.getAuxiliaryOrdersKeyboard("departmentTaskOrder", keyboard_info)
+        keyboard = await buttons.getAuxiliaryOrdersKeyboard("departmentTaskOrder", keyboard_info)
     return [mes, keyboard]

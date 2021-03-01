@@ -15,10 +15,17 @@ def get_task(id):
         {"id": id})
 
 
-def get_all_tasks():
-    response = DataBase.request("SELECT `id`, `orderID`, `staff`, `departmentTag`, `message` FROM `tasks`")
+def get_tasks(page=0, max_size=10):
+    response = DataBase.request(
+        "SELECT t1.orderID, t1.staff FROM `tasks` t1 INNER JOIN (SELECT DISTINCT `orderID` FROM tasks LIMIT %(page)s,%(max_size)s) t2 ON t2.orderID=t1.orderID",
+        {"page": page * max_size, "max_size": max_size})
     response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
     return response
+
+
+def get_tasks_count():
+    response = DataBase.request("SELECT COUNT(DISTINCT `orderID`) AS 'count' FROM `tasks`")
+    return response["data"]["count"] if response["code"] == 200 else 0
 
 
 def get_user_tasks(userID):
@@ -45,7 +52,7 @@ def del_task_orderID(orderID):
 def del_task_duplicate(userID, departmentTag, orderID):
     response = DataBase.request(
         "SELECT `id`, `orderID`, `staff`, `departmentTag`, `message` FROM `tasks` WHERE `departmentTag`=%(departmentTag)s AND (`staff` LIKE %(userOne)s OR `staff` LIKE %(userTwo)s)",
-        {"departmentTag": departmentTag,"userOne": "%" + str(userID) + ",%", "userTwo": "%" + str(userID) + "]%"})
+        {"departmentTag": departmentTag, "userOne": "%" + str(userID) + ",%", "userTwo": "%" + str(userID) + "]%"})
     response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
     if response["code"] == 200:
         for task in response["data"]:

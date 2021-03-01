@@ -13,11 +13,24 @@ def get_promo_code(code):
         {"code": code})
 
 
+def get_promoCode(page=0, max_size=10):
+    response = DataBase.request(
+        "SELECT `id`, `name`, `code`, `percent`, `discount`,`limitation_use`,`count` FROM `promo_codes` LIMIT %(page)s,%(max_size)s",
+        {"page": page * max_size, "max_size": max_size})
+    response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
+    return response
+
+
 def get_ALLPromoCode():
     response = DataBase.request(
         "SELECT `id`, `name`, `code`, `percent`, `discount`,`limitation_use`,`count` FROM `promo_codes`")
     response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
     return response
+
+
+def get_ALLPromoCode_count():
+    response = DataBase.request("SELECT COUNT(`id`) AS 'count' FROM `promo_codes`")
+    return response["data"]["count"] if response["code"] == 200 else 0
 
 
 def create_promo_code(name, code, percent, discount, limitation_use, count):

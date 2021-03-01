@@ -53,7 +53,7 @@ async def show_info_order(message: types.Message):
 async def start_create_code(message: types.Message, state: FSMContext):
     await DepartmentAdd.name.set()
     await function.set_state_active(state)
-    await message.answer(text=config.adminMessage["department_add_name"], reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
+    await message.answer(text=config.adminMessage["department_add_name"], reply_markup=await buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.message_handler(state=DepartmentAdd.name, user_id=config.ADMINS)
@@ -64,10 +64,10 @@ async def create_code_name(message: types.Message, state: FSMContext):
         await state.update_data(name=message.text)
         await DepartmentAdd.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                             reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить создание"))
+                             reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить создание"))
     else:
         await message.answer("Отдел с таким именем уже существует",
-                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
+                             reply_markup=await buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.message_handler(state=DepartmentAdd.tag, user_id=config.ADMINS)
@@ -79,10 +79,10 @@ async def create_code_code(message: types.Message, state: FSMContext):
         await state.update_data(tag=message.text)
         await DepartmentAdd.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                             reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить создание"))
+                             reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить создание"))
     else:
         await message.answer("Недопустимые символы (@ . \") или отдел с таким тэгом уже существует",
-                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
+                             reply_markup=await buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.message_handler(state=DepartmentAdd.wait)
@@ -105,7 +105,7 @@ async def create_code_yes(call: types.CallbackQuery, state: FSMContext):
         await DepartmentAdd.tag.set()
         mes = config.adminMessage["department_add_tag"]
     await function.set_state_active(state)
-    await call.message.edit_text(text=mes, reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
+    await call.message.edit_text(text=mes, reply_markup=await buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=DepartmentAdd)
@@ -117,7 +117,7 @@ async def create_code_no(call: types.CallbackQuery, state: FSMContext):
     elif "DepartmentAdd:name" == state_active:
         await DepartmentAdd.name.set()
     await function.set_state_active(state)
-    await call.message.edit_text(text=config.adminMessage["code_add_repeat"], reply_markup=buttons.getCustomKeyboard(cancel="Отменить создание"))
+    await call.message.edit_text(text=config.adminMessage["code_add_repeat"], reply_markup=await buttons.getCustomKeyboard(cancel="Отменить создание"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=DepartmentAdd)
@@ -130,7 +130,7 @@ async def create_code_cancel(call: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(user_id=config.ADMINS, commands=["departmentEdit"])
 async def start_edit_code(message: types.Message, state: FSMContext):
-    mes, keyboard = menu_edit_department(-1, tag=function.check_first_tag(message.text))
+    mes, keyboard = await menu_edit_department(-1, tag=function.check_first_tag(message.text))
     await message.answer(mes, reply_markup=keyboard)
 
 
@@ -140,7 +140,7 @@ async def edit_code_name_start(call: types.CallbackQuery, state: FSMContext, cal
     await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
     await call.message.edit_text(config.adminMessage["department_add_name"],
-                                 reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
+                                 reply_markup=await buttons.getCustomKeyboard(cancel="Назад"))
 
 
 @dp.callback_query_handler(action_callback.filter(what_action="department_tag"), user_id=config.ADMINS)
@@ -149,7 +149,7 @@ async def edit_code_code_start(call: types.CallbackQuery, state: FSMContext, cal
     await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
     await call.message.edit_text(config.adminMessage["department_add_tag"],
-                                 reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
+                                 reply_markup=await buttons.getCustomKeyboard(cancel="Назад"))
 
 
 @dp.callback_query_handler(action_callback.filter(what_action="department_add_user"), user_id=config.ADMINS)
@@ -158,7 +158,7 @@ async def edit_code_code_start(call: types.CallbackQuery, state: FSMContext, cal
     await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
     await call.message.edit_text(config.adminMessage["department_add_user"],
-                                 reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
+                                 reply_markup=await buttons.getCustomKeyboard(cancel="Назад"))
 
 
 @dp.callback_query_handler(action_callback.filter(what_action="department_del_user"), user_id=config.ADMINS)
@@ -167,7 +167,7 @@ async def edit_code_code_start(call: types.CallbackQuery, state: FSMContext, cal
     await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
     await call.message.edit_text(config.adminMessage["department_del_user"],
-                                 reply_markup=buttons.getCustomKeyboard(cancel="Назад"))
+                                 reply_markup=await buttons.getCustomKeyboard(cancel="Назад"))
 
 
 @dp.callback_query_handler(action_callback.filter(what_action="department_delete"), user_id=config.ADMINS)
@@ -175,7 +175,7 @@ async def edit_code_delete_start(call: types.CallbackQuery, state: FSMContext, c
     await DepartmentEdit.delete.set()
     await state.update_data(departmentEditID=callback_data.get("id"))
     await function.set_state_active(state)
-    await call.message.edit_text("Удалить отдел?", reply_markup=buttons.getConfirmationKeyboard())
+    await call.message.edit_text("Удалить отдел?", reply_markup=await buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=DepartmentEdit.add_user, user_id=config.ADMINS)
@@ -185,12 +185,12 @@ async def edit_code_name(message: types.Message, state: FSMContext):
             user = await bot.get_chat(message.text)
             await state.update_data(add_user=message.text)
             await message.answer(user.full_name + "\n" + config.adminMessage["code_add_confirmation"],
-                                 reply_markup=buttons.getConfirmationKeyboard())
+                                 reply_markup=await buttons.getConfirmationKeyboard())
         except:
             await message.answer("Такой пользователь не существует.",
-                                 reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+                                 reply_markup=await buttons.getCustomKeyboard(cancel="Отменить"))
     else:
-        await message.answer("Вы ввели не число, повторите", reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+        await message.answer("Вы ввели не число, повторите", reply_markup=await buttons.getCustomKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=DepartmentEdit.del_user, user_id=config.ADMINS)
@@ -202,12 +202,12 @@ async def edit_code_name(message: types.Message, state: FSMContext):
         if department["code"] == 200 and id in department["data"]["staff"]:
             await state.update_data(del_user=id)
             await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                                 reply_markup=buttons.getConfirmationKeyboard())
+                                 reply_markup=await buttons.getConfirmationKeyboard())
         else:
             await message.answer("Данного пользователя и так нет в отделе)",
-                                 reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+                                 reply_markup=await buttons.getCustomKeyboard(cancel="Отменить"))
     else:
-        await message.answer("Вы ввели не число, повторите", reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+        await message.answer("Вы ввели не число, повторите", reply_markup=await buttons.getCustomKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=DepartmentEdit.name, user_id=config.ADMINS)
@@ -215,7 +215,7 @@ async def edit_code_name(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
     await state.update_data(name=message.text)
     await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                         reply_markup=buttons.getConfirmationKeyboard())
+                         reply_markup=await buttons.getConfirmationKeyboard())
 
 
 @dp.message_handler(state=DepartmentEdit.tag, user_id=config.ADMINS)
@@ -226,10 +226,10 @@ async def edit_code_code(message: types.Message, state: FSMContext):
             departments["code"] == 200 and message.text in [department["tag"] for department in departments["data"]]):
         await state.update_data(tag=message.text)
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                             reply_markup=buttons.getConfirmationKeyboard())
+                             reply_markup=await buttons.getConfirmationKeyboard())
     else:
         await message.answer("Недопустимые символы (@ . \") или отдел с таким тэгом уже существует",
-                             reply_markup=buttons.getCustomKeyboard(cancel="Отменить"))
+                             reply_markup=await buttons.getCustomKeyboard(cancel="Отменить"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=DepartmentEdit)
@@ -259,7 +259,7 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
     elif "DepartmentEdit:del_user" == state_active:
         departmentModel.del_staff(department["id"], data.get("del_user"))
 
-    mes, keyboard = menu_edit_department(data.get("departmentEditID"))
+    mes, keyboard = await menu_edit_department(data.get("departmentEditID"))
     await state.finish()
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
@@ -267,7 +267,7 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=DepartmentEdit)
 async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    mes, keyboard = menu_edit_department(data.get("departmentEditID"))
+    mes, keyboard = await menu_edit_department(data.get("departmentEditID"))
     await state.finish()
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
@@ -275,12 +275,12 @@ async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=DepartmentEdit)
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    mes, keyboard = menu_edit_department(data.get("departmentEditID"))
+    mes, keyboard = await menu_edit_department(data.get("departmentEditID"))
     await state.finish()
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
 
-def menu_edit_department(departmentID, tag=None):
+async def menu_edit_department(departmentID, tag=None):
     if not tag is None:
         department = departmentModel.get_department(tag)
     else:
@@ -289,7 +289,7 @@ def menu_edit_department(departmentID, tag=None):
         department = department["data"]
         return [config.adminMessage["department_edit"].format(name=department["name"],
                                                               tag=department["tag"]),
-                buttons.getActionKeyboard(department["id"], department_name="Название", department_tag="Тэг",
+                await buttons.getActionKeyboard(department["id"], department_name="Название", department_tag="Тэг",
                                           department_add_user="Добавить сотрудника",
                                           department_del_user="Удалить сотрудника", department_delete="Удалить отдел")]
     else:

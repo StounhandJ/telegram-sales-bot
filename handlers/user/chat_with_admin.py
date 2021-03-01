@@ -30,7 +30,7 @@ async def start_write_administration(message: types.Message, state: FSMContext):
         await UserMes.message.set()
         await function.set_state_active(state)
         mes = config.message["report_mes"]
-        keyboard = buttons.getCustomKeyboard(cancel="Отменить")
+        keyboard = await buttons.getCustomKeyboard(cancel="Отменить")
     await message.answer(text=mes, reply_markup=keyboard)
 
 
@@ -40,7 +40,7 @@ async def adding_comment(message: types.Message, state: FSMContext):
     await state.update_data(message=message.text)
     await UserMes.wait.set()
     await message.answer(config.message["comment_confirmation"].format(text=message.text),
-                         reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
+                         reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=UserMes.wait)
@@ -54,7 +54,7 @@ async def message_add_doc(message: types.Message, state: FSMContext):
     await UserMes.wait.set()
     await message.answer(config.message["document_confirmation"].format(
         text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
-        reply_markup=buttons.getConfirmationKeyboard(cancel="Отменить"))
+        reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=UserMes.document, content_types=types.ContentType.PHOTO)
@@ -86,11 +86,11 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
     elif "UserMes:documentCheck" == state_active:
         await UserMes.document.set()
         mes = config.message["comment_document"]
-        keyboard = buttons.getCustomKeyboard(noElement="Нет файла")
+        keyboard = await buttons.getCustomKeyboard(noElement="Нет файла")
     elif "UserMes:message" == state_active:
         await UserMes.documentCheck.set()
         mes = config.message["comment_documentCheck"]
-        keyboard = buttons.getConfirmationKeyboard(cancel="Отменить")
+        keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить")
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
 
@@ -99,7 +99,7 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
 async def adding_comment_no(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     state_active = data.get("state_active")
-    keyboard = buttons.getCustomKeyboard(cancel="Отменить")
+    keyboard = await buttons.getCustomKeyboard(cancel="Отменить")
     if "UserMes:document" == state_active:
         await UserMes.document.set()
     elif "UserMes:documentCheck" == state_active:
