@@ -16,27 +16,32 @@ from utils import function
 async def diploma_info(call: types.CallbackQuery):
     await call.message.edit_text(text="Другие работы",
                                  reply_markup=await buttons.getOtherWorks())
+    await call.answer()
 
 
 @dp.callback_query_handler(type_work_callback.filter(work="back"))
 async def diploma_info(call: types.CallbackQuery):
     await call.message.edit_text(text=config.message["Product_Menu"], reply_markup=await buttons.getTypeWorkKeyboard())
+    await call.answer()
 
 
 @dp.callback_query_handler(type_work_callback.filter())
 async def diploma_info(call: types.CallbackQuery, callback_data: dict):
     await call.message.edit_text(text=config.works[callback_data["work"]]["description"],
                                  reply_markup=await buttons.getSellWorkKeyboard(callback_data["work"]))
+    await call.answer()
 
 
 @dp.callback_query_handler(setting_callback.filter(command="exit"))
 async def product_info_exit(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text(config.message["Product_Menu"], reply_markup=await buttons.getTypeWorkKeyboard())
+    await call.answer()
 
 
 @dp.callback_query_handler(setting_callback.filter(command="continue"))
 async def start_buy_product(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
-    if banListModel.get_ban_user(call.from_user.id)["code"] == 200:
+    await call.answer()
+    if banListModel.is_ban_user(call.from_user.id):
         await call.message.edit_text("Вы забанены")
         return
 
@@ -93,20 +98,19 @@ async def message_add_doc(message: types.Message):
 async def adding_promoCode(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
     code = promoCodesModel.get_promo_code(message.text)
-    if code["code"] == 200 and code["data"]["limitation_use"] and code["data"]["count"] <= 0:
+    if code and code.limitation_use and code.count <= 0:
         await message.answer("Данный промокод закончился")
-    elif code["code"] == 200:
-        code = code["data"]
-        await state.update_data(percent=code["percent"],
-                                discount=code["discount"],
-                                promoCode=code["code"])
+    elif code:
+        await state.update_data(percent=code.percent,
+                                discount=code.discount,
+                                promoCode=code.code)
         await SellInfo.wait.set()
-        await message.answer(config.message["promoCode_confirmation"].format(name=code["name"],
-                                                                             discount=str(code["discount"]) + (
-                                                                                 "%" if code["percent"] else " р.")),
+        await message.answer(config.message["promoCode_confirmation"].format(name=code.name,
+                                                                             discount=str(code.discount) + (
+                                                                                 "%" if code.percent else " р.")),
                              reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
     else:
-        await message.answer(config.message["code_missing"])
+        await message.answer(text=config.message["code_missing"]+"\n"+config.message["comment_confirmation_no"], reply_markup=await buttons.getCustomKeyboard(cancel="Отменить заказ"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="noElement"), state=SellInfo)
@@ -126,6 +130,7 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
         mes = config.message["comment_promoCodeCheck"]
         keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     await call.message.edit_text(text=mes, reply_markup=keyboard)
+    await call.answer()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=SellInfo)
@@ -166,6 +171,7 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
         keyboard = await buttons.getCustomKeyboard(cancel="Отменить заказ")
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
+    await call.answer()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=SellInfo)
@@ -196,12 +202,14 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
         return
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
+    await call.answer()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=SellInfo)
 async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await call.message.edit_text(config.message["Product_Menu"], reply_markup=await buttons.getTypeWorkKeyboard())
+    await call.answer()
 
 
 async def create_order(call, state):

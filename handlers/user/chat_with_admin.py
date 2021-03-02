@@ -16,16 +16,16 @@ from utils import function
 
 @dp.message_handler(Text(equals=["Написать администрации", "/ames"]))
 async def start_write_administration(message: types.Message, state: FSMContext):
-    if banListModel.get_ban_user(message.from_user.id)["code"] == 200:
+    if banListModel.is_ban_user(message.from_user.id):
         await message.answer("Вы забанены")
         return
     keyboard = None
     lastMessage = messagesModel.get_last_message_day_user(message.from_user.id)
-    if lastMessage["code"] == 200 and len(lastMessage["data"]) >= 20:
+    if lastMessage and len(lastMessage) >= 20:
         mes = config.message["increased_requests"]
-    elif lastMessage["code"] == 200 and lastMessage["data"][len(lastMessage["data"]) - 1]["date"] > time.time() - 60 * 30:
+    elif lastMessage and lastMessage[len(lastMessage) - 1].date > time.time() - 60 * 30:
         mes = config.message["repeat_requests"].format(
-            min=int((lastMessage["data"][len(lastMessage["data"]) - 1]["date"]-(time.time() - 60 * 30))/60))
+            min=int((lastMessage[len(lastMessage) - 1].date-(time.time() - 60 * 30))/60))
     else:
         await UserMes.message.set()
         await function.set_state_active(state)
@@ -72,6 +72,7 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
         await create_mes(call, state)
         return
     await call.message.edit_text(text=mes, reply_markup=keyboard)
+    await call.answer()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=UserMes)
@@ -93,6 +94,7 @@ async def adding_comment_yes(call: types.CallbackQuery, state: FSMContext):
         keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить")
     await function.set_state_active(state)
     await call.message.edit_text(text=mes, reply_markup=keyboard)
+    await call.answer()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=UserMes)
@@ -109,6 +111,7 @@ async def adding_comment_no(call: types.CallbackQuery, state: FSMContext):
         await UserMes.message.set()
 
     await call.message.edit_text(text=config.message["message_no"], reply_markup=keyboard)
+    await call.answer()
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=UserMes)
@@ -122,7 +125,7 @@ async def create_mes(call, state):
     orders = orderModel.get_ALLOrders()
     message = data.get("message") if "message" in data.keys() else ""
     document = [data.get("document").file_id] if "document" in data.keys() else []
-    isOrder = orders["code"] == 200 and call.from_user.id in [order["userID"] for order in orders["data"]]
+    isOrder = True if orders and (call.from_user.id in [order.userID for order in orders]) else False
     messagesModel.create_messages(call.from_user.id, message, document, isOrder)
     await state.finish()
     await notify_admins_message("Новое сообщение от " + (

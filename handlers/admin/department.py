@@ -18,12 +18,12 @@ from utils.yandex_disk import YandexDisk
 @dp.message_handler(Text(equals=["Отделы", "/departments"]), user_id=config.ADMINS)
 async def show_orders(message: types.Message):
     departments = departmentModel.get_all_departments()
-    if departments["code"] == 200:
+    if departments:
         text = ""
         num = 1
-        for item in departments["data"]:
-            text += config.adminMessage["department_info"].format(num=num, name=item["name"], tag=item["tag"],
-                                                                  count_staff=len(item["staff"]))
+        for item in departments:
+            text += config.adminMessage["department_info"].format(num=num, name=item.name, tag=item.tag,
+                                                                  count_staff=len(item.staff))
             num += 1
         mes = config.adminMessage["departments_main"].format(text=text)
     else:
@@ -35,14 +35,13 @@ async def show_orders(message: types.Message):
 async def show_info_order(message: types.Message):
     mes = config.adminMessage["department_missing"]
     department = departmentModel.get_department(function.check_first_tag(message.text))
-    if department["code"] == 200:
-        department = department["data"]
+    if department:
         count_staff = ""
-        for staff in department["staff"]:
+        for staff in department.staff:
             user = await bot.get_chat(staff)
             count_staff += "{name} {id}\n".format(name=user.full_name, id=user.id)
-        mes = config.adminMessage["department_detailed_info"].format(name=department["name"],
-                                                                     tag=department["tag"],
+        mes = config.adminMessage["department_detailed_info"].format(name=department.name,
+                                                                     tag=department.tag,
                                                                      count_staff=count_staff)
     await message.answer(mes)
 
@@ -60,7 +59,7 @@ async def start_create_code(message: types.Message, state: FSMContext):
 async def create_code_name(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
     departments = departmentModel.get_all_departments()
-    if not (departments["code"] == 200 and message.text in [department["name"] for department in departments["data"]]):
+    if not (departments and message.text in [department.name for department in departments]):
         await state.update_data(name=message.text)
         await DepartmentAdd.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
@@ -71,11 +70,11 @@ async def create_code_name(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=DepartmentAdd.tag, user_id=config.ADMINS)
-async def create_code_code(message: types.Message, state: FSMContext):
+async def create_department_tag(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
     departments = departmentModel.get_all_departments()
     if (not "@" in message.text and not "." in message.text and not "\"" in message.text) and not (
-            departments["code"] == 200 and message.text in [department["tag"] for department in departments["data"]]):
+            departments and message.text in [department.tag for department in departments]):
         await state.update_data(tag=message.text)
         await DepartmentAdd.wait.set()
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
@@ -199,7 +198,7 @@ async def edit_code_name(message: types.Message, state: FSMContext):
     if message.text.isdigit():
         id = int(message.text)
         department = departmentModel.get_department_id(data.get("departmentEditID"))
-        if department["code"] == 200 and id in department["data"]["staff"]:
+        if department and id in department.staff:
             await state.update_data(del_user=id)
             await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                                  reply_markup=await buttons.getConfirmationKeyboard())
@@ -213,9 +212,14 @@ async def edit_code_name(message: types.Message, state: FSMContext):
 @dp.message_handler(state=DepartmentEdit.name, user_id=config.ADMINS)
 async def edit_code_name(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
-    await state.update_data(name=message.text)
-    await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
-                         reply_markup=await buttons.getConfirmationKeyboard())
+    departments = departmentModel.get_all_departments()
+    if not (departments and message.text in [department.name for department in departments]):
+        await state.update_data(name=message.text)
+        await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
+                             reply_markup=await buttons.getConfirmationKeyboard())
+    else:
+        await message.answer("Отдел с таким именем уже существует",
+                             reply_markup=await buttons.getCustomKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=DepartmentEdit.tag, user_id=config.ADMINS)
@@ -223,7 +227,7 @@ async def edit_code_code(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
     departments = departmentModel.get_all_departments()
     if (not "@" in message.text and not "." in message.text and not "\"" in message.text) and not (
-            departments["code"] == 200 and message.text in [department["tag"] for department in departments["data"]]):
+            departments and message.text in [department.tag for department in departments]):
         await state.update_data(tag=message.text)
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                              reply_markup=await buttons.getConfirmationKeyboard())
@@ -237,28 +241,26 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     state_active = data.get("state_active")
     department = departmentModel.get_department_id(data.get("departmentEditID"))
-    if not department["code"] == 200:
+    if not department:
         await state.finish()
         await call.message.edit_text(config.adminMessage["department_missing"])
         return
-    department = department["data"]
     if "DepartmentEdit:delete" == state_active:
-        departmentModel.delete_department(department["id"])
+        departmentModel.delete_department(department.id)
         await state.finish()
         await call.message.edit_text(text=config.adminMessage["department_del_yes"])
         return
 
     if "DepartmentEdit:name" == state_active:
-        departmentModel.update_department(department["id"], data.get("name"), department["tag"])
-        YandexDisk.rename_department(department["name"],data.get("name"))
+        department.name = data.get("name")
+        YandexDisk.rename_department(department.name, data.get("name"))
     elif "DepartmentEdit:tag" == state_active:
-        departmentModel.update_department(department["id"], department["name"], data.get("tag"))
+        department.tag = data.get("tag")
     elif "DepartmentEdit:add_user" == state_active:
-        departmentModel.add_staff(department["id"], data.get("add_user"))
-        YandexDisk.mkdir_staffer(data.get("add_user"), department["name"])
+        department.staff.append(int(data.get("add_user")))
     elif "DepartmentEdit:del_user" == state_active:
-        departmentModel.del_staff(department["id"], data.get("del_user"))
-
+        department.staff.remove(int(data.get("del_user")))
+    department.save()
     mes, keyboard = await menu_edit_department(data.get("departmentEditID"))
     await state.finish()
     await call.message.edit_text(text=mes, reply_markup=keyboard)
@@ -285,11 +287,10 @@ async def menu_edit_department(departmentID, tag=None):
         department = departmentModel.get_department(tag)
     else:
         department = departmentModel.get_department_id(departmentID)
-    if department["code"] == 200:
-        department = department["data"]
-        return [config.adminMessage["department_edit"].format(name=department["name"],
-                                                              tag=department["tag"]),
-                await buttons.getActionKeyboard(department["id"], department_name="Название", department_tag="Тэг",
+    if department:
+        return [config.adminMessage["department_edit"].format(name=department.name,
+                                                              tag=department.tag),
+                await buttons.getActionKeyboard(department.id, department_name="Название", department_tag="Тэг",
                                           department_add_user="Добавить сотрудника",
                                           department_del_user="Удалить сотрудника", department_delete="Удалить отдел")]
     else:

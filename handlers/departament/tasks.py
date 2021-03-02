@@ -27,43 +27,43 @@ async def close_order(call: types.CallbackQuery, callback_data: dict):
         mes = config.adminMessage["order_missing"]
         keyboard = None
         task = tasksModel.get_task(callback_data.get("id"))
-        if task["code"] != 200:
+        if not task:
             await call.message.edit_text(text="Задача отсутствует")
             return
-        order = orderModel.get_order(task["data"]["orderID"])
-        if order["code"] == 200 and check_tasks(call.from_user.id, order["data"]["id"]):
-            order = order["data"]
-            keyboard = buttons.getActionKeyboard(task["data"]["id"], departmentTaskSend="Сдать работу",
+        order = orderModel.get_order(task.orderID)
+        if order and check_tasks(call.from_user.id, order.id):
+            keyboard = await buttons.getActionKeyboard(task.id, departmentTaskSend="Сдать работу",
                                                  departmentTaskCancel="Назад")
-            mes = config.departmentMessage["task_info"].format(orderID=order["id"], price=order["price"],
-                                                               description=order["description"],
-                                                               descriptionA=task["data"]["message"])
-            if len(order["document"]) == 1:
+            mes = config.departmentMessage["task_info"].format(orderID=order.id, price=order.price,
+                                                               description=order.description,
+                                                               descriptionA=task.message)
+            if len(order.document) == 1:
                 await call.message.delete()
-                await call.message.answer_document(caption=mes, document=order["document"][0], reply_markup=keyboard)
+                await call.message.answer_document(caption=mes, document=order.document[0], reply_markup=keyboard)
                 return
-            elif len(order["document"]) > 1:
+            elif len(order.document) > 1:
                 await call.message.delete()
-                for document in order["document"]:
+                for document in order.document:
                     await call.message.answer_document(document=document)
         await call.message.edit_text(mes, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(action_callback.filter(what_action="departmentTaskSend"))
-async def close_order(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+async def send_task(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     staffs = departmentModel.get_all_staffs()
     if call.from_user.id in staffs:
         mes = config.adminMessage["order_missing"]
         keyboard = None
         task = tasksModel.get_task(callback_data.get("id"))
-        if task["code"] != 200:
-            await call.message.edit_text(text="Задача отсутствует")
+        if not task:
+            await call.message.delete()
+            await call.message.answer(text="Задача отсутствует")
             return
-        order = orderModel.get_order(task["data"]["orderID"])
-        if order["code"] == 200:
+        order = orderModel.get_order(task.orderID)
+        if order:
             keyboard = await buttons.getCustomKeyboard(cancel="Отменить")
             mes = config.departmentMessage["task_add_comment"]
-            await state.update_data(orderID=order["data"]["id"], taskID=task["data"]["id"])
+            await state.update_data(orderID=order.id, taskID=task.id)
             await TaskComplete.description.set()
             await function.set_state_active(state)
 
@@ -104,13 +104,13 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
     keyboard = None
     state_active = data.get("state_active")
     if "TaskComplete:document" == state_active:
-        response = tasksModel.get_task(data.get("taskID"))
+        task = tasksModel.get_task(data.get("taskID"))
         userDepartment = ""
         userDepartmentName = ""
-        if response["code"] == 200:
-            userDepartment = response["data"]["departmentTag"]
+        if task:
+            userDepartment = task.departmentTag
             department = departmentModel.get_department(userDepartment)
-            userDepartmentName = department["data"]["name"] if department["code"] == 200 else ""
+            userDepartmentName = department.name if department else ""
         else:
             await call.message.edit_text(text="Произашла ошибка, невозможно отправить данную работу, обратитесь к администрации.")
             return
@@ -151,7 +151,7 @@ async def adding_comment_or_promoCode_no(call: types.CallbackQuery, state: FSMCo
     elif "TaskComplete:description" == state_active:
         await TaskComplete.description.set()
     await function.set_state_active(state)
-    await call.message.edit_text(text=mes)
+    await call.message.edit_text(text=mes, reply_markup=await buttons.getCustomKeyboard(cancel="Отменить"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=TaskComplete)
@@ -173,7 +173,7 @@ async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: F
 
 def check_tasks(staffID, orderID):
     response = tasksModel.get_user_tasks(staffID)
-    return response["code"] == 200 and orderID in [task["orderID"] for task in response["data"]]
+    return response and orderID in [task.orderID for task in response]
 
 
 async def menu_tasks_list(userID):
@@ -181,9 +181,9 @@ async def menu_tasks_list(userID):
     mes = config.departmentMessage["task_list_missing"]
     keyboard = None
     keyboard_info = {}
-    if tasks["code"] == 200:
+    if tasks:
         mes = config.departmentMessage["task_main"]
-        for number, task in enumerate(tasks["data"]):
-            keyboard_info[config.departmentMessage["task_button"].format(task["orderID"], task["departmentTag"])] = task["id"]
+        for task in tasks:
+            keyboard_info[config.departmentMessage["task_button"].format(task.orderID, task.departmentTag)] = task.id
         keyboard = await buttons.getAuxiliaryOrdersKeyboard("departmentTaskOrder", keyboard_info)
     return [mes, keyboard]

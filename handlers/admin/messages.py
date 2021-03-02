@@ -151,12 +151,12 @@ async def send_mes(call, state):
     await call.answer(cache_time=2)
     data = await state.get_data()
     messageInfo = messagesModel.get_message(data.get("message_sendID"))
-    if not messageInfo["code"] == 200 or (messageInfo["code"] == 200 and not messageInfo["data"]["active"]):
+    if not messageInfo or (messageInfo and not messageInfo.active):
         await state.finish()
         await call.message.edit_text(config.adminMessage["order_completed"])
         return
     keys = data.keys()
-    chatID = messageInfo["data"]["userID"]
+    chatID = messageInfo.userID
     mes = data.get("message") if "message" in keys else ""
     doc = [data.get("document").file_id] if "document" in keys else []
     await bot.send_message(chat_id=chatID, text="<b>Ответ на вашу заявку</b>:")
@@ -169,7 +169,7 @@ async def send_mes(call, state):
             await bot.send_document(chat_id=chatID, document=document)
         if mes != "":
             await bot.send_message(chat_id=chatID, text=mes)
-    messagesModel.updateActive_message(data.get("message_sendID"))
+    messageInfo.updateActive_message()
     await state.finish()
     await call.message.edit_text(config.adminMessage["message_yes_send"])
 
@@ -178,10 +178,10 @@ async def menu_send_mes(mesID, message, state):
     mes = config.adminMessage["message_missing"]
     messageInfo = messagesModel.get_message(mesID)
     keyboard = None
-    if messageInfo["code"] == 200 and not messageInfo["data"]["active"]:
+    if messageInfo and not messageInfo.active:
         mes = config.adminMessage["order_completed"]
-    elif messageInfo["code"] == 200:
-        await state.update_data(message_sendID=messageInfo["data"]["id"])
+    elif messageInfo:
+        await state.update_data(message_sendID=messageInfo.id)
         await AdminMesUser.message.set()
         await function.set_state_active(state)
         mes = config.adminMessage["message_send"]
@@ -193,22 +193,20 @@ async def menu_info_mes(mesID, message):
     mes = "Данное сообщние не найдено"
     messageInfo = messagesModel.get_message(mesID)
     keyboard = None
-    if messageInfo["code"] == 200:
-        messageInfo = messageInfo["data"]
-        mes = config.adminMessage["message_detailed_info"].format(id=messageInfo["id"], userID=messageInfo["userID"],
-                                                                  text=messageInfo["message"],
+    if messageInfo:
+        mes = config.adminMessage["message_detailed_info"].format(id=messageInfo.id, userID=messageInfo.userID,
+                                                                  text=messageInfo.message,
                                                                   date=time.strftime('%Y-%m-%d %H:%M:%S',
                                                                                      time.localtime(
-                                                                                         messageInfo["date"])))
-        mes += "Сообщение от " + ("пользователя с заказом" if messageInfo["isOrder"] else "обычного пользователя")
-        mes += "" if messageInfo["active"] else "\n<b>На сообщение уже ответили</b>"
-        keyboard = await buttons.getActionKeyboard(messageInfo["id"], MessageSend="Ответить") if messageInfo[
-            "active"] else None
-        if len(messageInfo["document"]) == 1:
-            await message.answer_document(caption=mes, document=messageInfo["document"][0], reply_markup=keyboard)
+                                                                                         messageInfo.date)))
+        mes += "Сообщение от " + ("пользователя с заказом" if messageInfo.isOrder else "обычного пользователя")
+        mes += "" if messageInfo.active else "\n<b>На сообщение уже ответили</b>"
+        keyboard = await buttons.getActionKeyboard(messageInfo.id, MessageSend="Ответить") if messageInfo.active else None
+        if len(messageInfo.document) == 1:
+            await message.answer_document(caption=mes, document=messageInfo.document[0], reply_markup=keyboard)
             return
-        elif len(messageInfo["document"]) > 1:
-            for document in messageInfo["document"]:
+        elif len(messageInfo.document) > 1:
+            for document in messageInfo.document:
                 await message.answer_document(document=document)
     await message.answer(text=mes, reply_markup=keyboard)
 
@@ -218,17 +216,17 @@ async def menu_main(page, IsClient):
         page=page, max_size_messages=config.max_size_messages)
     messages_count = messagesModel.get_client_messages_count() if IsClient else messagesModel.get_user_messages_count()
     keyboard = None
-    if messages["code"] == 200:
+    if messages:
         start = config.adminMessage["messages_main_order"] if IsClient else config.adminMessage["messages_main_all"]
         text = ""
         num = 1
-        for item in messages["data"]:
-            date = time.localtime(item["date"])
+        for item in messages:
+            date = time.localtime(item.date)
             dateMes = "{year} год {day} {month} {min}".format(year=date.tm_year, day=date.tm_mday,
                                                               month=config.months[date.tm_mon - 1],
                                                               hour=date.tm_hour,
                                                               min=time.strftime("%H:%M", date))
-            text += config.adminMessage["messages_info"].format(num=num+(page*config.max_size_messages), id=item["id"], date=dateMes)
+            text += config.adminMessage["messages_info"].format(num=num+(page*config.max_size_messages), id=item.id, date=dateMes)
             num += 1
         mes = config.adminMessage["messages_main"].format(start=start, text=text)
         keyboard = await buttons.getNumbering(math.ceil(messages_count/config.max_size_messages), "messagesClientNumbering" if IsClient else "messagesUserNumbering")

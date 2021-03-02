@@ -22,19 +22,20 @@ class DataBaseClass(object):
             data = {}
         try:
             if self.con.ping(reconnect=True):
-                return {"code": 502, "mes": "Reconnecting DataBase", "data": None}
+                return {"code": 502, "mes": "Reconnecting DataBase", "data": []}
         except:
-            return {"code": 502, "mes": "Error connect DataBase", "data": None}
+            return {"code": 502, "mes": "Error connect DataBase", "data": []}
 
         try:
+            print(self.cursor.mogrify(sql,data))
             self.cursor.execute(sql, data)
         except Exception as e:
-            return {"code": 100, "mes": "Ошибка в запросе или указаны не все параметры", "data": None}
+            return {"code": 100, "mes": "Ошибка в запросе или указаны не все параметры", "data": []}
 
         self.con.commit()
 
         if self.cursor.rowcount == 0:
-            return {"code": 404, "mes": "Совпдений не найдено", "data": None}
+            return {"code": 404, "mes": "Совпдений не найдено", "data": []}
         try:
             out = []
             fetchall = self.cursor.fetchall()
@@ -47,7 +48,7 @@ class DataBaseClass(object):
                         out[key][key2] = value2
             return {"code": 200, "mes": "Успешно", "data": out[0] if len(out) == 1 else out}
         except:
-            return {"code": 204, "mes": "Успешно, но ответа нет", "data": None}
+            return {"code": 204, "mes": "Успешно, но ответа нет", "data": []}
 
 
 DataBase = DataBaseClass()
