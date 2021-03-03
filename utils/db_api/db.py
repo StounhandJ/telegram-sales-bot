@@ -27,7 +27,6 @@ class DataBaseClass(object):
             return {"code": 502, "mes": "Error connect DataBase", "data": []}
 
         try:
-            print(self.cursor.mogrify(sql,data))
             self.cursor.execute(sql, data)
         except Exception as e:
             return {"code": 100, "mes": "Ошибка в запросе или указаны не все параметры", "data": []}
