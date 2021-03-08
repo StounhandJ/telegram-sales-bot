@@ -1,3 +1,6 @@
+import asyncio
+import time
+
 from aiogram import types
 from aiogram.dispatcher.filters.builtin import Text, CommandStart
 from aiogram.dispatcher.filters.builtin import CommandHelp
@@ -15,7 +18,7 @@ async def bot_start(message: types.Message):
 @dp.message_handler(CommandHelp())
 async def bot_help(message: types.Message):
     print(message.from_user.id)
-    await message.answer("Думаю поймешь ;)")
+    await message.answer(config.message["Help_Menu"])
 
 
 @dp.message_handler(commands=["menu"])
