@@ -1,13 +1,10 @@
-import asyncio
-import time
-
 from aiogram import types
 from aiogram.dispatcher.filters.builtin import Text, CommandStart
 from aiogram.dispatcher.filters.builtin import CommandHelp
 from data import config
 from keyboards.default.menu import menu
 from keyboards.inline import buttons
-from loader import dp
+from loader import dp, bot
 
 
 @dp.message_handler(CommandStart())

@@ -22,8 +22,16 @@ async def show_orders(message: types.Message):
         text = ""
         num = 1
         for item in departments:
+            staffInfo = ""
+            for employee in item.staff:
+                try:
+                    user = await bot.get_chat(employee)
+                    staffInfo += config.adminMessage["department_info_staff"].format(name=user.full_name, id=employee)
+                except:
+                    staffInfo += config.adminMessage["department_info_staff"].format(name="<b>Удален</b>", id=employee)
+
             text += config.adminMessage["department_info"].format(num=num, name=item.name, tag=item.tag,
-                                                                  count_staff=len(item.staff))
+                                                                  staff=staffInfo)
             num += 1
         mes = config.adminMessage["departments_main"].format(text=text)
     else:
