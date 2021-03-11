@@ -17,8 +17,8 @@ User_Agreement = ""
 async def bot_start(message: types.Message):
     global User_Agreement
     await StartState.Confirmation.set()
-    f = open(f'{os.getcwd()}/data/Пользовательское соглашение.pdf', "rb")
     if User_Agreement == "":
+        f = open(f'{os.path.dirname(os.path.abspath(__file__))}/../data/Пользовательское соглашение.pdf', "rb")
         send_file = await bot.send_document(chat_id=message.chat.id, caption=config.message["confirmations_agreement"], document=f, reply_markup=await buttons.getConfirmationKeyboard())
         User_Agreement = send_file.document.file_id
     else:
