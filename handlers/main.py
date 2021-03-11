@@ -1,3 +1,4 @@
+import os
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.builtin import Text, CommandStart
@@ -16,7 +17,7 @@ User_Agreement = ""
 async def bot_start(message: types.Message):
     global User_Agreement
     await StartState.Confirmation.set()
-    f = open('data/Пользовательское соглашение.pdf', "rb")
+    f = open(f'{os.getcwd()}/data/Пользовательское соглашение.pdf', "rb")
     if User_Agreement == "":
         send_file = await bot.send_document(chat_id=message.chat.id, caption=config.message["confirmations_agreement"], document=f, reply_markup=await buttons.getConfirmationKeyboard())
         User_Agreement = send_file.document.file_id
