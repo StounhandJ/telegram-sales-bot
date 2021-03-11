@@ -9,11 +9,19 @@ from keyboards.inline.callback_datas import confirmation_callback
 from loader import dp, bot
 from states.start import StartState
 
+User_Agreement = ""
+
 
 @dp.message_handler(CommandStart())
 async def bot_start(message: types.Message):
+    global User_Agreement
     await StartState.Confirmation.set()
-    await message.answer_document(caption=config.message["confirmations_agreement"], document="BQACAgIAAxkBAAImqGBKIoaXrBEBlPJzZS6b24x4kkQBAAJuCwACXcNRSoc2dq6a9khAHgQ", reply_markup=await buttons.getConfirmationKeyboard())
+    f = open('data/Пользовательское соглашение.pdf', "rb")
+    if User_Agreement == "":
+        send_file = await bot.send_document(chat_id=message.chat.id, caption=config.message["confirmations_agreement"], document=f, reply_markup=await buttons.getConfirmationKeyboard())
+        User_Agreement = send_file.document.file_id
+    else:
+        await message.answer_document(caption=config.message["confirmations_agreement"], document=User_Agreement, reply_markup=await buttons.getConfirmationKeyboard())
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=StartState)
