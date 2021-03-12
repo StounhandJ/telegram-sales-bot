@@ -10,7 +10,7 @@ images_extension = [".png", ".jpeg", ".jpg"]
 class TelegramFilesClass:
 
     def __init__(self):
-        self.main_path = f"{os.path.dirname(os.path.abspath(__file__))}\..\data\\"
+        self.main_path = f"{os.path.dirname(os.path.abspath(__file__))}/../data/"
         self.uploaded_files = {}
 
     async def get_telegram_key_files(self, path, chatID):
