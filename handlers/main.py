@@ -14,7 +14,7 @@ from utils.telegram_files import TelegramFiles
 @dp.message_handler(CommandStart())
 async def bot_start(message: types.Message):
     await StartState.Confirmation.set()
-    await message.answer_document(caption=config.message["confirmations_agreement"], document=await TelegramFiles.get_telegram_key_files("Пользовательское соглашение.pdf", message.chat.id), reply_markup=await buttons.getConfirmationKeyboard())
+    await message.answer_document(caption=config.message["confirmations_agreement"], document=await TelegramFiles.get_telegram_key_files("documents/Пользовательское соглашение.pdf", message.chat.id), reply_markup=await buttons.getConfirmationKeyboard())
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=StartState)
@@ -68,13 +68,3 @@ async def show_about(message: types.Message):
 @dp.message_handler(commands=["Ukeyboard"])
 async def show_help(message: types.Message):
     await message.answer(config.adminMessage["help"], reply_markup=menu)
-
-
-@dp.message_handler(commands=["testD"])
-async def bot_start(message: types.Message):
-    await message.answer_document(caption=config.message["confirmations_agreement"], document=await TelegramFiles.get_telegram_key_files("documents/test.txt", message.chat.id), reply_markup=await buttons.getConfirmationKeyboard())
-
-
-@dp.message_handler(commands=["testI"])
-async def bot_start(message: types.Message):
-    await message.answer_photo(caption=config.message["confirmations_agreement"], photo=await TelegramFiles.get_telegram_key_files("images/test.png", message.chat.id), reply_markup=await buttons.getConfirmationKeyboard())
