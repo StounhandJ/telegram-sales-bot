@@ -1,4 +1,3 @@
-import os
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.builtin import Text, CommandStart
@@ -7,22 +6,15 @@ from data import config
 from keyboards.default.menu import menu
 from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback
-from loader import dp, bot
+from loader import dp
 from states.start import StartState
-
-User_Agreement = ""
+from utils.telegram_files import TelegramFiles
 
 
 @dp.message_handler(CommandStart())
 async def bot_start(message: types.Message):
-    global User_Agreement
     await StartState.Confirmation.set()
-    if User_Agreement == "":
-        f = open(f'{os.path.dirname(os.path.abspath(__file__))}/../data/Пользовательское соглашение.pdf', "rb")
-        send_file = await bot.send_document(chat_id=message.chat.id, caption=config.message["confirmations_agreement"], document=f, reply_markup=await buttons.getConfirmationKeyboard())
-        User_Agreement = send_file.document.file_id
-    else:
-        await message.answer_document(caption=config.message["confirmations_agreement"], document=User_Agreement, reply_markup=await buttons.getConfirmationKeyboard())
+    await message.answer_document(caption=config.message["confirmations_agreement"], document=await TelegramFiles.get_telegram_key_files("Пользовательское соглашение.pdf", message.chat.id), reply_markup=await buttons.getConfirmationKeyboard())
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=StartState)
@@ -76,3 +68,13 @@ async def show_about(message: types.Message):
 @dp.message_handler(commands=["Ukeyboard"])
 async def show_help(message: types.Message):
     await message.answer(config.adminMessage["help"], reply_markup=menu)
+
+
+@dp.message_handler(commands=["testD"])
+async def bot_start(message: types.Message):
+    await message.answer_document(caption=config.message["confirmations_agreement"], document=await TelegramFiles.get_telegram_key_files("documents/test.txt", message.chat.id), reply_markup=await buttons.getConfirmationKeyboard())
+
+
+@dp.message_handler(commands=["testI"])
+async def bot_start(message: types.Message):
+    await message.answer_photo(caption=config.message["confirmations_agreement"], photo=await TelegramFiles.get_telegram_key_files("images/test.png", message.chat.id), reply_markup=await buttons.getConfirmationKeyboard())

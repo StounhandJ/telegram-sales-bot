@@ -10,6 +10,7 @@ from states.user_sell_info import SellInfo
 from utils.db_api.models import ordersProcessingModel, promoCodesModel, banListModel, userInformationModel
 from utils.notify_admins import notify_admins_message
 from utils import function
+from utils.telegram_files import TelegramFiles
 
 
 @dp.callback_query_handler(type_work_callback.filter(work="other_works"))
@@ -82,11 +83,16 @@ async def waiting(message: types.Message):
 
 @dp.message_handler(state=SellInfo.document, content_types=types.ContentType.DOCUMENT)
 async def message_add_doc(message: types.Message, state: FSMContext):
-    await state.update_data(document=message.document)
-    await SellInfo.wait.set()
-    await message.answer(config.message["document_confirmation"].format(
-        text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
-        reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+    if TelegramFiles.document_size(message.document.file_size):
+        await state.update_data(document=message.document)
+        await SellInfo.wait.set()
+        await message.answer(config.message["document_confirmation"].format(
+            text="{name} {size}мб\n".format(name=message.document.file_name, size=round(message.document.file_size/1024/1024, 3))),
+            reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+    else:
+        await message.answer(config.message["document_confirmation_size"].format(
+            text="{name} {size}мб\n".format(name=message.document.file_name, size=round(message.document.file_size/1024/1024, 3))),
+            reply_markup=await buttons.getCustomKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=SellInfo.document, content_types=types.ContentType.PHOTO)
@@ -129,7 +135,8 @@ async def adding_promoCode_yes(call: types.CallbackQuery, state: FSMContext):
         await function.set_state_active(state)
         mes = config.message["comment_promoCodeCheck"]
         keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
-    await call.message.edit_text(text=mes, reply_markup=keyboard)
+    if mes:
+        await call.message.edit_text(text=mes, reply_markup=keyboard)
     await call.answer()
 
 

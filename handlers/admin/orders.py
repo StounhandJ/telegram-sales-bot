@@ -17,6 +17,8 @@ from utils import function
 
 
 ### Информация о заказах ###
+from utils.telegram_files import TelegramFiles
+
 
 @dp.message_handler(Text(equals=["Заказы", "/orders"]), user_id=config.ADMINS)
 async def show_orders(message: types.Message):
@@ -96,11 +98,11 @@ async def message_check(message: types.Message, state: FSMContext):
     doc = data.get("document") if "document" in keys else []
     img = data.get("img") if "img" in keys else []
     for item in doc:
-        DocMes += "{name} {size}кб\n".format(name=item.file_name, size=item.file_size)
+        DocMes += "{name} {size}мб\n".format(name=item.file_name, size=round(item.file_size/1024/1024, 3))
     for item in img:
-        ImgMes += "{height}x{width} {size}кб\n".format(height=item[len(item) - 1].height,
-                                                       width=item[len(item) - 1].width,
-                                                       size=item[len(item) - 1].file_size)
+        ImgMes += "{height}x{width} {size}мб\n".format(height=item.height,
+                                                       width=item.width,
+                                                       size=round(item.file_size/1024/1024, 3))
     ResponseMes = "<b>Текст</b>:\n{text}\n <b>Документы</b>:\n{doc}\n <b>Изображения</b>:\n {img}".format(text=mes,
                                                                                                           doc=DocMes,
                                                                                                           img=ImgMes)
@@ -109,30 +111,39 @@ async def message_check(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, content_types=types.ContentType.DOCUMENT)
 async def message_add_doc(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    keys = data.keys()
-    mes = data.get("description") if "description" in keys else ""
-    doc = data.get("document") if "document" in keys else []
-    async with state.proxy() as data:
-        doc.append(message.document)
-        data["document"] = doc
-        data["description"] = mes + (message.caption + "\n" if message.caption is not None else "")
-    await message.answer(config.adminMessage["document_add"] + "\n" + config.adminMessage["message_send_confirmation"],
-                         reply_markup=await buttons.getConfirmationKeyboard())
+    if TelegramFiles.document_size(message.document.file_size):
+        data = await state.get_data()
+        keys = data.keys()
+        mes = data.get("description") if "description" in keys else ""
+        doc = data.get("document") if "document" in keys else []
+        async with state.proxy() as data:
+            doc.append(message.document)
+            data["document"] = doc
+            data["description"] = mes + (message.caption + "\n" if message.caption is not None else "")
+        await message.answer(
+            config.adminMessage["document_add"] + "\n" + config.adminMessage["message_send_confirmation"],
+            reply_markup=await buttons.getConfirmationKeyboard())
+    else:
+        await message.answer(config.message["document_confirmation_size"].format(
+            text="{name} {size}мб\n".format(name=message.document.file_name, size=round(message.document.file_size/1024/1024, 3))),
+            reply_markup=await buttons.getCustomKeyboard(cancel="Отменить"))
 
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS, content_types=types.ContentType.PHOTO)
 async def message_add_img(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    keys = data.keys()
-    mes = data.get("description") if "description" in keys else ""
-    img = data.get("img") if "img" in keys else []
-    async with state.proxy() as data:
-        img.append(message.photo)
-        data["img"] = img
-        data["description"] = mes + (message.caption + "\n" if message.caption is not None else "")
-    await message.answer(config.adminMessage["img_add"] + "\n" + config.adminMessage["message_send_confirmation"],
-                         reply_markup=await buttons.getConfirmationKeyboard())
+    if TelegramFiles.photo_size(message.photo[0].file_size) and TelegramFiles.image_aspect_ratio(message.photo[0].width,message.photo[0].height):
+        data = await state.get_data()
+        keys = data.keys()
+        mes = data.get("description") if "description" in keys else ""
+        img = data.get("img") if "img" in keys else []
+        async with state.proxy() as data:
+            img.append(message.photo[0])
+            data["img"] = img
+            data["description"] = mes + (message.caption + "\n" if message.caption is not None else "")
+        await message.answer(config.adminMessage["img_add"] + "\n" + config.adminMessage["message_send_confirmation"],
+                             reply_markup=await buttons.getConfirmationKeyboard())
+    else:
+        await message.answer(config.message["img_no"])
 
 
 @dp.message_handler(state=AdminMesOrder.message, user_id=config.ADMINS)
@@ -170,7 +181,7 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
         if mes != "":
             await bot.send_message(chat_id=chatID, text=mes)
     for item in img:
-        await bot.send_photo(chat_id=chatID, photo=item[len(item) - 1].file_id)
+        await bot.send_photo(chat_id=chatID, photo=item.file_id)
     await state.finish()
     await call.message.edit_text(config.adminMessage["message_yes_send"])
 

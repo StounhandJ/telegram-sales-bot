@@ -12,6 +12,7 @@ from loader import dp, bot
 from states.admin_mes_user import AdminMesUser
 from utils.db_api.models import messagesModel
 from utils import function
+from utils.telegram_files import TelegramFiles
 
 
 @dp.message_handler(Text(equals=["Сообщения от заказчиков", "/mesOrder"]), user_id=config.ADMINS)
@@ -78,11 +79,16 @@ async def waiting(message: types.Message):
 
 @dp.message_handler(state=AdminMesUser.document, content_types=types.ContentType.DOCUMENT)
 async def message_add_doc(message: types.Message, state: FSMContext):
-    await state.update_data(document=message.document)
-    await AdminMesUser.wait.set()
-    await message.answer(config.message["document_confirmation"].format(
-        text="{name} {size}кб\n".format(name=message.document.file_name, size=message.document.file_size)),
-        reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить"))
+    if TelegramFiles.document_size(message.document.file_size):
+        await state.update_data(document=message.document)
+        await AdminMesUser.wait.set()
+        await message.answer(config.message["document_confirmation"].format(
+            text="{name} {size}мб\n".format(name=message.document.file_name, size=round(message.document.file_size/1024/1024, 3))),
+            reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
+    else:
+        await message.answer(config.message["document_confirmation_size"].format(
+            text="{name} {size}мб\n".format(name=message.document.file_name, size=round(message.document.file_size/1024/1024, 3))),
+            reply_markup=await buttons.getCustomKeyboard(cancel="Отменить заказ"))
 
 
 @dp.message_handler(state=AdminMesUser.document, content_types=types.ContentType.PHOTO)
