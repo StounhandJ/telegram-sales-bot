@@ -203,7 +203,7 @@ async def menu_tasks_list(userID):
 
 
 async def save_file(document, userID, orderID, userDepartmentName):
-    path = f"{os.getcwd()}/documents/{userDepartmentName}/{userID}/{orderID}"
+    path = f"{os.path.dirname(os.path.abspath(__file__))}/../../documents/{userDepartmentName}/{userID}/{orderID}"
     if not os.path.exists(path):
         os.makedirs(path)
     file_info = await bot.get_file(
