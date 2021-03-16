@@ -69,6 +69,7 @@ message = {
     "Product_Menu": "На данный момент мы выполняем:<b>\n⚫ Курсовые работы\n⚫ Дипломные работы\n⚫ 3D печать\n⚫ Моделирование\n⚫ Дизайн\n⚫ Разработка Embedded систем и прототипирование устройств</b>",
     "Main_Menu": "Главное меню",
     "Help_Menu": "Все ваши вопросы просим направить на почту: <b>support@neproblemka.com</b>",
+    "get_discount": "Данный бот выдаст её @neproblemka_coupon_bot",
     "product_info": "Предмет: <i>{item_name}</i>\nОписание: <i>{description}</i>\nЦена: <i>{price}</i>",
     "code_missing": "❌ Данного промокода не существует ❌",
     "comment_order": "Оставьте коментарий к заказу: ",
