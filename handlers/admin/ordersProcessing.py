@@ -11,6 +11,7 @@ from keyboards.inline import buttons
 from keyboards.inline.callback_datas import confirmation_callback, action_callback, numbering_callback
 from loader import dp, bot
 from states.admin_close_order_pr import AdminCloseOrderPr
+from states.admin_pr_mes import AdminPrMes
 from states.admin_price_order import AdminPriceOrder
 from utils.db_api.models import ordersProcessingModel, paymentModel
 from utils import function
@@ -166,6 +167,56 @@ async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
 
 
+# отправка сообщений пользователю #
+
+@dp.callback_query_handler(action_callback.filter(what_action="OrderProcMessageSend"), user_id=config.ADMINS)
+async def close_order_button(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    await state.update_data(orderID=callback_data.get("id"))
+    await AdminPrMes.message.set()
+    mes = config.adminMessage["message_send"]
+    keyboard = await buttons.getCustomKeyboard(cancel="Отмена")
+    await call.message.answer(text=mes, reply_markup=keyboard)
+    await call.message.delete()
+
+
+@dp.message_handler(state=AdminPrMes.message, user_id=config.ADMINS)
+async def close_order_text(message: types.Message, state: FSMContext):
+    message.text = function.string_handler(message.text)
+    await state.update_data(text=message.text)
+    await AdminPrMes.wait.set()
+    await message.answer(config.message["comment_confirmation"].format(text=message.text), reply_markup=await buttons.getConfirmationKeyboard())
+
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="Yes"), state=AdminPrMes.wait)
+async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
+    await call.answer()
+    mes = config.adminMessage["order_missing"]
+    data = await state.get_data()
+    order = ordersProcessingModel.get_order_provisional(data.get("orderID"))
+    if order:
+        text = config.adminMessage["order_send_mes"].format(orderID=order.id)
+        text += data.get("text")
+        await bot.send_message(chat_id=order.userID, text=text)
+        await menu_info_order(order.id, call.message)
+        mes = config.adminMessage["message_yes_send"]
+    await state.finish()
+    await call.message.edit_text(mes)
+
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="No"), state=AdminPrMes.wait)
+async def message_send_no(call: types.CallbackQuery, state: FSMContext):
+    await AdminPrMes.message.set()
+    await call.message.edit_text(text=config.adminMessage["message_send"], reply_markup=await buttons.getCustomKeyboard(cancel="Отмена"))
+
+
+@dp.callback_query_handler(confirmation_callback.filter(bool="cancel"), state=AdminPrMes)
+async def edit_code_no(call: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await call.message.delete()
+    await menu_info_order(data.get("orderID"), call.message)
+    await state.finish()
+
+
 async def menu_send_order(orderID, message, state):
     mes = config.adminMessage["order_missing"]
     keyboard = None
@@ -207,7 +258,7 @@ async def menu_info_order(orderID, message):
                                                                    date=time.strftime('%Y-%m-%d %H:%M:%S',
                                                                                       time.localtime(order.date)))
         mes += "" if order.active else "<b>Заказ выполнен</b>"
-        keyboard = await buttons.getActionKeyboard(order.id, OrderProcessingSend="Отправить форму оплаты",
+        keyboard = await buttons.getActionKeyboard(order.id, OrderProcessingSend="Отправить форму оплаты", OrderProcMessageSend="Написать",
                                                    OrderProcessingCloser="Отказать") if order.active else None
         if len(order.document) == 1:
             await message.answer_document(caption=mes, document=order.document[0], reply_markup=keyboard)

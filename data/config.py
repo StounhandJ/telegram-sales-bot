@@ -120,6 +120,7 @@ adminMessage = {
     "order_detailed_info": "Номер заказа <b>{orderID}</b>\nОплата: {price}\nОплачена <b>{payment}</b>\nКоментарий к заказу: {description}\nДата заказа: {date}\n",
     "order_close_text": "Напишите текст для отказа:",
     "order_close_confirm": "Отправить отказ?",
+    "order_send_mes": "Вам сообщение о заказе №{orderID}:\n",
     "img_no": "Изображение слишком большое",
 
     "message_send": "Напишите сообщение для пользователя",
