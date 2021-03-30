@@ -3,3 +3,4 @@ environs~=8.0.0
 PyMySQL~=1.0.2
 YaDiskClient~=0.5.0
 Pillow~=8.0.1
+requests~=2.25.1

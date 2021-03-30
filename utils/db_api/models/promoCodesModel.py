@@ -1,82 +1,71 @@
 from utils.db_api.db import DataBase
+from utils.db_api.request import request
 
 
 class PromoCode:
 
-    def __init__(self, id, name, code, percent, discount, limitation_use, count):
+    def __init__(self, id, name, code, discount, typeOfCode, limitation_use, info):
         self.id = id
         self.name = name
         self.code = code
-        self.percent = percent
         self.discount = discount
+        self.typeOfCode = typeOfCode
         self.limitation_use = limitation_use
-        self.count = count
+        self.info = info
 
     def save(self):
-        return DataBase.request(
-            "UPDATE `promo_codes` SET `name`=%(name)s,`code`=%(code)s,`percent`=%(percent)s,`discount`=%(discount)s,`count`=%(count)s WHERE `id`=%(id)s",
-            {"name": self.name, "code": self.code, "percent": self.percent, "discount": self.discount, "count": self.count, "id": self.id})
+        return request("POST", "/promocode.update", {"id": self.id, "name": self.name,
+                                                     "codeName": self.code, "discount": self.discount,
+                                                     "typeOfCode": self.typeOfCode, "limitUsing": self.limitation_use})
 
 
-def create_promo_code(name, code, percent, discount, limitation_use, count):
-    return DataBase.request(
-        "INSERT INTO `promo_codes`(`name`, `code`, `percent`, `discount`,`limitation_use`,`count`) VALUES (%(name)s,%(code)s,%(percent)s,%(discount)s,%(limitation_use)s,%(count)s)",
-        {"name": name, "code": code, "percent": percent, "discount": discount, "limitation_use": limitation_use,
-         "count": count})
+def create_promo_code(name, code, IsPercent, discount, count):
+    return request("POST", "/promocode.create", {"name": name, "codeName": code,
+                                                 "discount": discount, "typeOfCode": 1 if IsPercent else 0,
+                                                 "limitUsing": count})
 
 
 def get_promo_code_id(id):
-    response = DataBase.request(
-        "SELECT `id`, `name`, `code`,`percent`, `discount`,`limitation_use`,`count` FROM `promo_codes` WHERE `id`=%(id)s",
-        {"id": id})
+    response = request("GET", "/promocode", {"id": id})
     promo_code = None
     if response["code"] == 200:
         promo_code = PromoCode(response["data"]["id"], response["data"]["name"], response["data"]["code"],
-                               response["data"]["percent"],
-                               response["data"]["discount"], response["data"]["limitation_use"],
-                               response["data"]["count"])
+                               response["data"]["discount"],
+                               response["data"]["typeOfCode"], response["data"]['limitUsing'], response["data"]['info'])
     return promo_code
 
 
 def get_promo_code(code):
-    response = DataBase.request(
-        "SELECT `id`, `name`, `code`, `percent`, `discount`,`limitation_use`,`count` FROM `promo_codes` WHERE `code`=%(code)s",
-        {"code": code})
+    response = request("GET", "/promocode", {"code": code})
     promo_code = None
     if response["code"] == 200:
         promo_code = PromoCode(response["data"]["id"], response["data"]["name"], response["data"]["code"],
-                               response["data"]["percent"],
-                               response["data"]["discount"], response["data"]["limitation_use"],
-                               response["data"]["count"])
+                               response["data"]["discount"],
+                               response["data"]["typeOfCode"], response["data"]['limitUsing'], response["data"]['info'])
     return promo_code
 
 
 def get_promoCode(page=0, max_size=10):
-    response = DataBase.request(
-        "SELECT `id`, `name`, `code`, `percent`, `discount`,`limitation_use`,`count` FROM `promo_codes` LIMIT %(page)s,%(max_size)s",
-        {"page": page * max_size, "max_size": max_size})
-    response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
+    response = request("GET", "/promocode.all", {"limit": max_size, "offset": page * max_size})
     promo_codes = []
     for code in response["data"]:
-        promo_codes.append(PromoCode(code["id"], code["name"], code["code"], code["percent"],
-                                     code["discount"], code["limitation_use"], code["count"]))
+        promo_codes.append(PromoCode(code["id"], code["name"], code["code"], code["discount"],
+                                     code["typeOfCode"], code['limitUsing'], code['info']))
     return promo_codes
 
 
 def get_ALLPromoCode():
-    response = DataBase.request(
-        "SELECT `id`, `name`, `code`, `percent`, `discount`,`limitation_use`,`count` FROM `promo_codes`")
-    response["data"] = [response["data"]] if isinstance(response["data"], dict) else response["data"]
+    response = request("GET", "/promocode.all")
     promo_codes = []
     for code in response["data"]:
-        promo_codes.append(PromoCode(code["id"], code["name"], code["code"], code["percent"],
-                                     code["discount"], code["limitation_use"], code["count"]))
+        promo_codes.append(PromoCode(code["id"], code["name"], code["code"], code["discount"],
+                                     code["typeOfCode"], code['limitUsing'], code['info']))
     return promo_codes
 
 
 def get_ALLPromoCode_count():
-    response = DataBase.request("SELECT COUNT(`id`) AS 'count' FROM `promo_codes`")
-    return response["data"]["count"] if response["code"] == 200 else 0
+    response = request("GET", "/promocode.all")
+    return len(response["data"]) if response["code"] == 200 else 0
 
 
 def promo_code_used(code):
@@ -92,4 +81,4 @@ def promo_code_not_used(code):
 
 
 def delete_promo_code(id):
-    return DataBase.request("DELETE FROM `promo_codes` WHERE `id`=%(id)s", {"id": id})
+    return request("POST", "/promocode.del", {"id": id})

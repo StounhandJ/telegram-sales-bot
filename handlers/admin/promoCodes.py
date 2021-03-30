@@ -78,7 +78,7 @@ async def create_code_percent(message: types.Message, state: FSMContext):
 async def create_code_percent(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     typeDiscount = callback_data.get("bool")
     if typeDiscount == "percent" or typeDiscount == "amount":
-        await state.update_data(percent=(typeDiscount == "percent"))
+        await state.update_data(IsPercent=(typeDiscount == "percent"))
         await CodeAdd.discount.set()
         await function.set_state_active(state)
         await call.message.edit_text(config.adminMessage["code_add_discount"])
@@ -110,10 +110,8 @@ async def create_code_yes(call: types.CallbackQuery, state: FSMContext):
     mes = ""
     keyboard = None
     if "CodeAdd:discount" == state_active:
-        limitationUse = data.get("count") if "limitationUse" in data.keys() else False
-        count = data.get("count") if "count" in data.keys() else 0
-        promoCodesModel.create_promo_code(data.get("name"), data.get("code"), data.get("percent"), data.get("discount"),
-                                          limitationUse, count)
+        count = data.get("count") if "limitationUse" in data.keys() else 99999999
+        promoCodesModel.create_promo_code(data.get("name"), data.get("code"), data.get("IsPercent"), data.get("discount"), count)
         await CodeAdd.next()
         await state.finish()
         await call.message.edit_text("Сохранено")
@@ -240,7 +238,7 @@ async def edit_code_code(message: types.Message, state: FSMContext):
 @dp.message_handler(state=CodeEdit.percent, user_id=config.ADMINS)
 async def edit_code_percent(message: types.Message, state: FSMContext):
     if message.text == "1" or message.text == "2":
-        await state.update_data(percent=message.text == "2")
+        await state.update_data(IsPercent=message.text == "2")
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                              reply_markup=await buttons.getConfirmationKeyboard())
     else:
@@ -252,7 +250,7 @@ async def edit_code_discount(message: types.Message, state: FSMContext):
     data = await state.get_data()
     code = promoCodesModel.get_promo_code_id(data.get("codeEditID"))
     if code and message.text.isdigit() and (
-            not data.get("percent") or (data.get("percent") and int(message.text) <= 95)):
+            not data.get("IsPercent") or (data.get("IsPercent") and int(message.text) <= 95)):
         await state.update_data(discount=message.text)
         await message.answer(message.text + "\n" + config.adminMessage["code_add_confirmation"],
                              reply_markup=await buttons.getConfirmationKeyboard())
@@ -291,7 +289,7 @@ async def edit_product_yes(call: types.CallbackQuery, state: FSMContext):
     elif "CodeEdit:discount" == state_active:
         code.discount = data.get("discount")
     elif "CodeEdit:count" == state_active:
-        code.count = data.get("count")
+        code.limitation_use = data.get("count")
     code.save()
     mes, keyboard = await menu_edit_promoCode(data.get("codeEditID"))
     await state.finish()
@@ -319,13 +317,10 @@ async def menu_edit_promoCode(codeEditID):
     if code:
         keyboard = await buttons.getActionKeyboard(code.id, promoCode_name="Имя", promoCode_code="Промокод",
                                                    promoCode_discount="Скидка", promoCode_count="Количество",
-                                                   promoCode_delete="Удалить") if code.limitation_use else \
-            await buttons.getActionKeyboard(code.id, promoCode_name="Имя", promoCode_code="Промокод",
-                                            promoCode_discount="Скидка",
-                                            promoCode_delete="Удалить")
+                                                   promoCode_delete="Удалить")
         return [config.adminMessage["code_edit"].format(name=code.name, code=code.code,
-                                                        count=code.count if code.limitation_use else "Бесконечно",
-                                                        discount=str(code.discount) + ("%" if code.percent else " р.")),
+                                                        count=code.limitation_use,
+                                                        discount=code.info),
                 keyboard]
     else:
         return [config.adminMessage["code_missing"], None]
@@ -340,12 +335,11 @@ async def menu_main(page):
         text = ""
         num = 1
         for code in codes:
-            discount = str(code.discount) + ("%" if code.percent else " р.")
             text += config.adminMessage["code_info"].format(num=num + (page * config.max_size_promoCode), id=code.id,
                                                             name=code.name,
                                                             code=code.code,
-                                                            count=code.count if code.limitation_use else "Бесконечно",
-                                                            discount=discount)
+                                                            count=code.limitation_use,
+                                                            discount=code.info)
             num += 1
         mes = config.adminMessage["code_main"].format(text=text)
         keyboard = await buttons.getNumbering(math.ceil(promoCode_count / config.max_size_promoCode),

@@ -107,13 +107,12 @@ async def adding_promoCode(message: types.Message, state: FSMContext):
     if code and code.limitation_use and code.count <= 0:
         await message.answer("Данный промокод закончился")
     elif code:
-        await state.update_data(percent=code.percent,
+        await state.update_data(percent=code.typeOfCode,
                                 discount=code.discount,
                                 promoCode=code.code)
         await SellInfo.wait.set()
         await message.answer(config.message["promoCode_confirmation"].format(name=code.name,
-                                                                             discount=str(code.discount) + (
-                                                                                 "%" if code.percent else " р.")),
+                                                                             discount=code.info),
                              reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
     else:
         await message.answer(text=config.message["code_missing"]+"\n"+config.message["comment_confirmation_no"], reply_markup=await buttons.getCustomKeyboard(cancel="Отменить заказ"))
