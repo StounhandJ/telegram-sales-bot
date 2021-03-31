@@ -36,7 +36,7 @@ def get_promo_code_id(id):
 
 
 def get_promo_code(code):
-    response = request("GET", "/promocode", {"code": code})
+    response = request("GET", "/promocode", {"codeName": code})
     promo_code = None
     if response["code"] == 200:
         promo_code = PromoCode(response["data"]["id"], response["data"]["name"], response["data"]["code"],

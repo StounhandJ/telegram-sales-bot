@@ -1,7 +1,8 @@
 import json
 
 from utils.db_api.db import DataBase
-import time
+from data.config import discount_full_payment
+from utils.db_api.request import request
 
 
 class OrderProvisional:
@@ -23,12 +24,12 @@ class OrderProvisional:
             {"id": self.id})
 
 
-def create_order_provisional(userID, text, document, separate_payment, percent, discount):
-    return DataBase.request(
-        "INSERT INTO `orders_processing`(`userID`, `text`, `document` ,`active`, `separate_payment`, `percent`, `discount`, `date`) VALUES (%(userID)s,%(text)s,%(document)s,1,%(separate_payment)s,%(percent)s,%(discount)s,%(date)s)",
-        {"userID": userID, "text": text, "document": json.dumps(document), "separate_payment": separate_payment,
-         "percent": percent, "discount": discount,
-         "date": int(time.time())})
+def create_order_provisional(userID, text, typeWork, promoCodeID, document, separate_payment):
+    order = request("POST", "/order.create", {"idClient": userID, "description": text, "typeWork": typeWork,
+                                      "stateOfOrder": 1})
+
+    request("POST", "/paymentOrder.create", {"idOrder": order["data"]["id"], "price": 0, "promoCodeID": promoCodeID,
+                                             "otherDiscount": 0 if separate_payment else discount_full_payment})
 
 
 def get_order_provisional(id):

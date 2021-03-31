@@ -4,7 +4,7 @@ from aiogram import types
 
 from data import config
 from loader import dp, bot
-from utils.db_api.models import paymentModel, orderModel, userInformationModel
+from utils.db_api.models import paymentModel, orderModel, userModel
 from utils.notify_admins import notify_admins_message
 
 
@@ -21,7 +21,7 @@ async def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery)
 @dp.message_handler(content_types=types.ContentType.SUCCESSFUL_PAYMENT)
 async def process_successful_payment(message: types.Message):
     paymentModel.add_payment_history(message.from_user.id, message.successful_payment.total_amount // 100)
-    userInformationModel.update_payment(message.from_user.id, message.successful_payment.total_amount // 100)
+    userModel.update_payment(message.from_user.id, message.successful_payment.total_amount // 100)
     mes = config.errorMessage["payment_missing"]
     payment = paymentModel.get_payment(message.successful_payment.invoice_payload)
     if payment:

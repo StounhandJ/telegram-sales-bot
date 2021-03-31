@@ -7,7 +7,7 @@ from keyboards.inline import buttons
 from keyboards.inline.callback_datas import setting_callback, confirmation_callback, type_work_callback
 from loader import dp, bot
 from states.user_sell_info import SellInfo
-from utils.db_api.models import ordersProcessingModel, promoCodesModel, banListModel, userInformationModel
+from utils.db_api.models import ordersProcessingModel, promoCodesModel, banListModel, userModel
 from utils.notify_admins import notify_admins_message
 from utils import function
 from utils.telegram_files import TelegramFiles
@@ -104,12 +104,10 @@ async def message_add_doc(message: types.Message):
 async def adding_promoCode(message: types.Message, state: FSMContext):
     message.text = function.string_handler(message.text)
     code = promoCodesModel.get_promo_code(message.text)
-    if code and code.limitation_use and code.count <= 0:
+    if code and code.limitation_use <= 0:
         await message.answer("Данный промокод закончился")
     elif code:
-        await state.update_data(percent=code.typeOfCode,
-                                discount=code.discount,
-                                promoCode=code.code)
+        await state.update_data(promocode=code.id)
         await SellInfo.wait.set()
         await message.answer(config.message["promoCode_confirmation"].format(name=code.name,
                                                                              discount=code.info),
@@ -167,8 +165,6 @@ async def adding_comment_or_promoCode_yes(call: types.CallbackQuery, state: FSMC
         keyboard = await buttons.getCustomKeyboard(noElement="Нет файла")
     elif "SellInfo:email" == state_active:
         await SellInfo.documentCheck.set()
-        description = data["type_work"] + "\n\n" + data.get("description")
-        await state.update_data(description=description)
         mes = config.message["comment_documentCheck"]
         keyboard = await buttons.getConfirmationKeyboard(cancel="Отменить заказ")
     elif "SellInfo:description" == state_active:
@@ -223,15 +219,13 @@ async def create_order(call, state):
     document = [data.get("document").file_id] if "document" in data.keys() else []
     email = data.get("email") if "email" in data.keys() else ""
     description = data.get("description") if "description" in data.keys() else ""
-    percent = data.get("percent") if "percent" in data.keys() else False
-    discount = data.get("discount") if "discount" in data.keys() else 0
-    promoCode = data.get("promoCode") if "promoCode" in data.keys() else ""
+    promoCodeID = data.get("promocode") if "promocode" in data.keys() else None
     separatePayment = data.get("separatePayment") if "separatePayment" in data.keys() else True
-    ordersProcessingModel.create_order_provisional(call.from_user.id, description, document,
-                                                   separatePayment, percent,
-                                                   discount)
-    promoCodesModel.promo_code_used(promoCode)
-    userInformationModel.update_email(call.from_user.id, email)
+    type_work = data.get("type_work") if "type_work" in data.keys() else ""
+    ordersProcessingModel.create_order_provisional(userModel.getOrCreate_user(call.from_user.id).id, description, type_work, promoCodeID, document,
+                                                   separatePayment)
+    # promoCodesModel.promo_code_used(promoCode)
+    userModel.update_email(call.from_user.id, email)
     await notify_admins_message(config.adminMessage["admin_mes_order_provisional"])
     await state.finish()
     mes = config.message["order_send"]
