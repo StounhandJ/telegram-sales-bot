@@ -113,7 +113,7 @@ async def adding_promoCode(message: types.Message, state: FSMContext):
                                                                              discount=code.info),
                              reply_markup=await buttons.getConfirmationKeyboard(cancel="Отменить заказ"))
     else:
-        await message.answer(text=config.message["code_missing"]+"\n"+config.message["comment_confirmation_no"], reply_markup=await buttons.getCustomKeyboard(cancel="Отменить заказ"))
+        await message.answer(text=config.message["code_missing"]+"\n"+config.message["comment_confirmation_no"], reply_markup=await buttons.getCustomKeyboard(noElement="Нет промокода", cancel="Отменить заказ"))
 
 
 @dp.callback_query_handler(confirmation_callback.filter(bool="noElement"), state=SellInfo)
@@ -216,7 +216,7 @@ async def adding_comment_or_promoCode_cancel(call: types.CallbackQuery, state: F
 
 async def create_order(call, state):
     data = await state.get_data()
-    document = [data.get("document").file_id] if "document" in data.keys() else []
+    document = data.get("document").file_id if "document" in data.keys() else []
     email = data.get("email") if "email" in data.keys() else ""
     description = data.get("description") if "description" in data.keys() else ""
     promoCodeID = data.get("promocode") if "promocode" in data.keys() else None

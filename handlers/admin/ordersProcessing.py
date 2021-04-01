@@ -252,20 +252,16 @@ async def menu_info_order(orderID, message):
     if order:
         mes = config.adminMessage["order_pr_detailed_info"].format(orderID=order.id, userID=order.userID,
                                                                    text=order.text,
-                                                                   discount=str(order.discount) + (
-                                                                       "%" if order.percent else " р."),
-                                                                   payment="по частям" if order.separate_payment else " целиком",
+                                                                   discount=order.promoCodeInfo,
+                                                                   payment=order.otherDiscount,
                                                                    date=time.strftime('%Y-%m-%d %H:%M:%S',
                                                                                       time.localtime(order.date)))
         mes += "" if order.active else "<b>Заказ выполнен</b>"
         keyboard = await buttons.getActionKeyboard(order.id, OrderProcessingSend="Отправить форму оплаты", OrderProcMessageSend="Написать",
                                                    OrderProcessingCloser="Отказать") if order.active else None
-        if len(order.document) == 1:
-            await message.answer_document(caption=mes, document=order.document[0], reply_markup=keyboard)
+        if order.document:
+            await message.answer_document(caption=mes, document=order.document, reply_markup=keyboard)
             return
-        elif len(order.document) > 1:
-            for document in order.document:
-                await message.answer_document(document=document)
     await message.answer(text=mes, reply_markup=keyboard)
 
 

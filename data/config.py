@@ -155,7 +155,7 @@ adminMessage = {
     "messages_main_order": "Список сообщений от покупателей:\n",
     "messages_main_all": "Список сообщений от обычных пользователей:\n",
 
-    "order_pr_detailed_info": "Номер заказа <b>{orderID}</b>\nID заказчика <b>{userID}</b>\nТекст заявки:\n{text}\nСкидка: {discount}\nОплата <b>{payment}</b>\nДата заказа: {date}\n",
+    "order_pr_detailed_info": "Номер заказа <b>{orderID}</b>\nID заказчика <b>{userID}</b>\nТекст заявки:\n{text}\nСкидка: {discount}\nДополнительная скидка: {payment}%\nДата заказа: {date}\n",
     "price_confirmation": "Отправить форму оплаты?",
     "admin_mes_order_provisional": "<b>Новый</b> заказ, нужно его рассмотреть и дать хорошую цену ; )\n/orderspr",
     "admin_mes_order_paid": "<b>Оплачен</b> новый заказа, надо бы его сделать\n/orders",
