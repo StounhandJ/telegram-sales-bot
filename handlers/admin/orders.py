@@ -210,9 +210,10 @@ async def send_order_button(call: types.CallbackQuery, state: FSMContext, callba
     if order and not order.active:
         mes = config.adminMessage["order_completed"]
     elif order:
-        PRICE = types.LabeledPrice(label="Работа на заказ",
-                                   amount=int(order.amount / 2) * 100)
         secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
+        amount = order.chequeCreate(secret_key.hexdigest())
+        PRICE = types.LabeledPrice(label="Работа на заказ",
+                                   amount=amount)
         await bot.send_message(order.userID, config.payMessage["payment_two"])
         await bot.send_invoice(
             chat_id=order.userID,
@@ -225,11 +226,6 @@ async def send_order_button(call: types.CallbackQuery, state: FSMContext, callba
             start_parameter='time-machine-example',
             payload=secret_key.hexdigest()
         )
-        order.set_paymentKey_order(secret_key.hexdigest())
-        paymentModel.create_payment(call.from_user.id, order.description, order.document,
-                                    order.separate_payment,
-                                    order.amount / 2,
-                                    secret_key.hexdigest(), True)
         mes = "Отправленно"
     await call.message.answer(mes)
     await menu_info_order(callback_data.get("id"), call.message)
@@ -267,28 +263,25 @@ async def menu_info_order(orderID, message):
     order = orderModel.get_order(orderID)
     keyboard = None
     if order:
-        payment = paymentModel.get_payment(order.payment_key)
         mes = config.adminMessage["order_detailed_info"].format(orderID=order.id,
-                                                                price=order.amount,
+                                                                price=order.price,
                                                                 description=order.description,
                                                                 payment="половина суммы" if order.separate_payment else "вся сумма",
                                                                 date=time.strftime('%Y-%m-%d %H:%M:%S',
                                                                                    time.localtime(order.date)))
         mes += "" if order.active else "<b>Заказ выполнен</b>"
-        mes += "<b>Ожидает оплаты второй части</b>" if payment else ""
-        if order.active and order.separate_payment and not payment:
+        mes += "<b>Ожидает оплаты</b>" if order.payment else ""
+        if order.active and order.separate_payment and not order.payment:
             keyboard = await buttons.getActionKeyboard(order.id, OrderSend="Отправить ответ",
                                                        OrderClose="Закрыть заказ",
                                                        OrderPaymentTwo="Отправить вторую оплату")
         elif order.active:
             keyboard = await buttons.getActionKeyboard(order.id, OrderSend="Отправить ответ",
                                                        OrderClose="Закрыть заказ")
-        if len(order.document) == 1:
-            await message.answer_document(caption=mes, document=order.document[0], reply_markup=keyboard)
+
+        if order.document:
+            await message.answer_document(caption=mes, document=order.document, reply_markup=keyboard)
             return
-        elif len(order.document) > 1:
-            for document in order.document:
-                await message.answer_document(document=document)
     await message.answer(text=mes, reply_markup=keyboard)
 
 

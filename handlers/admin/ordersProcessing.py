@@ -69,8 +69,8 @@ async def message_send_yes(call: types.CallbackQuery, state: FSMContext):
         mes = config.adminMessage["order_completed"]
     elif order:
         secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
-        amount = order.priceSet(int(data.get("price")) * 100)
-        order.chequeCreate(secret_key.hexdigest())
+        order.priceSet(int(data.get("price")) * 100)
+        amount = order.chequeCreate(secret_key.hexdigest())
         if amount < 10000:
             await state.finish()
             await call.message.edit_text("Вышла сумма меньше 100р.\nОтправка отменена")

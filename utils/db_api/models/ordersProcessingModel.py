@@ -21,7 +21,7 @@ class OrderProvisional:
         return request("POST", "/order.priceSet", {"id": self.id, "price": price})["data"]["price"]
 
     def chequeCreate(self, secretKey):
-        request("POST", "/order.chequeCreate", {"id": self.id, "secretKey": secretKey})
+        return request("POST", "/order.chequeCreate", {"id": self.id, "secretKey": secretKey})["data"]
 
 
 def create_order_provisional(idClient, text, typeWork, promoCodeID, document, separate_payment):
@@ -40,7 +40,7 @@ def get_order_provisional(id):
         otherDiscount = response["data"]["otherDiscount"]
         promoCodeInfo = request("GET", "/promocode", {"id": response["data"]["promoCodeID"]})["data"][
                 "info"] if response["data"]["promoCodeID"] else promoCodeInfo
-        order = OrderProvisional(response["data"]["id"], response["data"]['idClient']['telegramID'],
+        order = OrderProvisional(response["data"]["id"], response["data"]['Client']['telegramID'],
                                  response["data"]["description"],
                                  document,
                                  response["data"]["stateOfOrder"] == 0, otherDiscount, promoCodeInfo,
@@ -53,7 +53,7 @@ def get_orders_provisional(page=0, max_size=10):
     orders = []
     for order in response["data"]:
         orders.append(
-            OrderProvisional(order["id"], order['idClient']['telegramID'], "", None, True, 0, "", order["date"]))
+            OrderProvisional(order["id"], order['Client']['telegramID'], "", None, True, 0, "", order["date"]))
     return orders
 
 

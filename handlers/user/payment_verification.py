@@ -24,7 +24,7 @@ async def process_successful_payment(message: types.Message):
     mes = config.errorMessage["payment_missing"]
     payment = paymentModel.get_payment(message.successful_payment.invoice_payload)
     if payment and paymentModel.paymentCompleted(message.successful_payment.invoice_payload):
-        mes_admin = config.adminMessage["admin_mes_order_paid"]
         mes = config.message["comment_confirmation_yes"]
+        mes_admin = config.adminMessage["admin_mes_order_paid_two"].format(orderID=payment.idOrder) if payment.additional else config.adminMessage["admin_mes_order_paid"]
         await notify_admins_message(mes_admin)
     await message.answer(mes)
