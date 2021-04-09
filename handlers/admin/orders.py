@@ -211,7 +211,7 @@ async def send_order_button(call: types.CallbackQuery, state: FSMContext, callba
         mes = config.adminMessage["order_completed"]
     elif order:
         PRICE = types.LabeledPrice(label="Работа на заказ",
-                                   amount=int(order.price / 2) * 100)
+                                   amount=int(order.amount / 2) * 100)
         secret_key = hashlib.md5("{nameProduct}{time}".format(nameProduct="Работа на заказ", time=time.time()).encode())
         await bot.send_message(order.userID, config.payMessage["payment_two"])
         await bot.send_invoice(
@@ -228,7 +228,7 @@ async def send_order_button(call: types.CallbackQuery, state: FSMContext, callba
         order.set_paymentKey_order(secret_key.hexdigest())
         paymentModel.create_payment(call.from_user.id, order.description, order.document,
                                     order.separate_payment,
-                                    order.price / 2,
+                                    order.amount / 2,
                                     secret_key.hexdigest(), True)
         mes = "Отправленно"
     await call.message.answer(mes)
@@ -269,7 +269,7 @@ async def menu_info_order(orderID, message):
     if order:
         payment = paymentModel.get_payment(order.payment_key)
         mes = config.adminMessage["order_detailed_info"].format(orderID=order.id,
-                                                                price=order.price,
+                                                                price=order.amount,
                                                                 description=order.description,
                                                                 payment="половина суммы" if order.separate_payment else "вся сумма",
                                                                 date=time.strftime('%Y-%m-%d %H:%M:%S',

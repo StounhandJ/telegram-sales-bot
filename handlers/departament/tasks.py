@@ -33,7 +33,7 @@ async def close_order(call: types.CallbackQuery, callback_data: dict):
             return
         order = orderModel.get_order(task.orderID)
         if order and check_tasks(call.from_user.id, order.id):
-            mes = config.departmentMessage["task_info"].format(orderID=order.id, price=order.price,
+            mes = config.departmentMessage["task_info"].format(orderID=order.id, price=order.amount,
                                                                description=order.description,
                                                                descriptionA=task.message)
             if task.departmentTag == config.department_courier_tag:
