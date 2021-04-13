@@ -43,14 +43,9 @@ async def close_order(call: types.CallbackQuery, callback_data: dict):
             else:
                 keyboard = await buttons.getActionKeyboard(task.id, departmentTaskSend="Сдать работу",
                                                            departmentTaskCancel="Назад")
-            if len(order.document) == 1:
-                await call.message.delete()
-                await call.message.answer_document(caption=mes, document=order.document[0], reply_markup=keyboard)
+            if order.document:
+                await call.message.answer_document(caption=mes, document=order.document, reply_markup=keyboard)
                 return
-            elif len(order.document) > 1:
-                await call.message.delete()
-                for document in order.document:
-                    await call.message.answer_document(document=document)
         await call.message.edit_text(mes, reply_markup=keyboard)
 
 
